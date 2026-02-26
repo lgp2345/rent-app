@@ -17,7 +17,7 @@ export const AmountField = ({ label, value, onChangeText }: Props) => {
         onChangeText={onChangeText}
         keyboardType="decimal-pad"
         placeholder="0"
-        className="text-right min-h-[44px]"
+        className="text-right min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
       />
     </TextField>
   );

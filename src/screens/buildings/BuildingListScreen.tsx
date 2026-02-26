@@ -45,11 +45,11 @@ export const BuildingListScreen = ({ navigation }: Props) => {
       <ScreenContainer withBottomSpace>
         <Text className={typography.pageTitle + ' text-foreground'}>房屋管理</Text>
 
-        <Card className="border border-border bg-surface">
-          <Card.Body className="gap-2">
-            <View className="flex-row items-center justify-between rounded-xl bg-accent-soft px-3 py-2">
-              <Text className="text-sm font-medium text-accent-soft-foreground">已创建房屋</Text>
-              <Text className="text-base font-semibold text-accent-soft-foreground">
+        <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl">
+          <Card.Body className="gap-4 p-5">
+            <View className="flex-row items-center justify-between rounded-xl bg-primary/10 px-4 py-3 border border-primary/20">
+              <Text className="text-sm font-medium text-primary">已创建房屋</Text>
+              <Text className="text-xl font-bold text-primary">
                 {sortedBuildings.length}
               </Text>
             </View>
@@ -60,7 +60,7 @@ export const BuildingListScreen = ({ navigation }: Props) => {
                 value={name}
                 onChangeText={setName}
                 placeholder="例如：幸福里 1 栋"
-                className="min-h-[44px]"
+                className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
               />
             </TextField>
             <TextField isRequired>
@@ -69,7 +69,7 @@ export const BuildingListScreen = ({ navigation }: Props) => {
                 value={address}
                 onChangeText={setAddress}
                 placeholder="例如：杭州市西湖区文三路 88 号"
-                className="min-h-[44px]"
+                className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
               />
             </TextField>
           </Card.Body>
@@ -92,30 +92,36 @@ export const BuildingListScreen = ({ navigation }: Props) => {
             accessibilityRole="button"
             accessibilityLabel={`进入${building.name}详情`}
           >
-            <Card className="border border-border bg-surface">
-              <Card.Body className="gap-2">
-                <Card.Title>{building.name}</Card.Title>
-                <Card.Description>{building.address}</Card.Description>
-                <Text className={typography.caption + ' text-muted'}>
-                  楼层 {building.floors.length} / 房间{' '}
-                  {building.floors.reduce((sum, floor) => sum + floor.rooms.length, 0)}
+            <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-3">
+              <Card.Body className="gap-2 p-5">
+                <View className="flex-row items-center justify-between">
+                  <Card.Title className="text-lg font-bold text-foreground">{building.name}</Card.Title>
+                  <View className="bg-primary/10 px-2 py-1 rounded-full">
+                    <Text className="text-xs text-primary font-medium">
+                      {building.floors.reduce((sum, floor) => sum + floor.rooms.length, 0)} 房间
+                    </Text>
+                  </View>
+                </View>
+                <Card.Description className="text-muted mt-1">{building.address}</Card.Description>
+                <Text className={typography.caption + ' text-muted mt-2'}>
+                  共 {building.floors.length} 个楼层
                 </Text>
               </Card.Body>
-              <Card.Footer className="flex-row gap-2">
+              <Card.Footer className="flex-row gap-3 px-5 pb-5 pt-2 border-t border-border/50">
                 <Button
                   variant="secondary"
-                  className="min-h-[44px]"
+                  className="flex-1 min-h-[48px] rounded-xl border-primary/30"
                   onPress={() =>
                     navigation.navigate('BuildingDetail', { buildingId: building.id })
                   }
                   accessibilityRole="button"
                   accessibilityLabel={`进入${building.name}详情`}
                 >
-                  <Button.Label>进入详情</Button.Label>
+                  <Button.Label className="text-primary font-medium">进入详情</Button.Label>
                 </Button>
                 <Button
                   variant="danger-soft"
-                  className="min-h-[44px]"
+                  className="min-h-[48px] px-6 rounded-xl bg-danger/10"
                   onPress={() =>
                     Alert.alert('删除房屋', '确定删除该房屋吗？', [
                       { text: '取消', style: 'cancel' },
@@ -129,7 +135,7 @@ export const BuildingListScreen = ({ navigation }: Props) => {
                   accessibilityRole="button"
                   accessibilityLabel={`删除${building.name}`}
                 >
-                  <Button.Label>删除</Button.Label>
+                  <Button.Label className="text-danger font-medium">删除</Button.Label>
                 </Button>
               </Card.Footer>
             </Card>

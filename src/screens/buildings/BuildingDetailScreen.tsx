@@ -89,32 +89,32 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
     <ScreenContainer scrollRef={scrollRef}>
       <Text className={typography.pageTitle + ' text-foreground'}>{building.name}</Text>
 
-      <Card className="border border-border bg-surface">
-        <Card.Body className="gap-2">
+      <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4">
+        <Card.Body className="gap-4 p-5">
           <SectionTitle>房屋信息</SectionTitle>
           <Text className="text-xs text-muted">先维护房屋基础信息，再继续配置楼层和房间</Text>
           <TextField isRequired>
             <Label>房屋名称</Label>
-            <Input value={name} onChangeText={setName} className="min-h-[44px]" />
+            <Input value={name} onChangeText={setName} className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border" />
           </TextField>
           <TextField isRequired>
             <Label>地址</Label>
-            <Input value={address} onChangeText={setAddress} className="min-h-[44px]" />
+            <Input value={address} onChangeText={setAddress} className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border" />
           </TextField>
           <Button
             variant="primary"
             onPress={handleSaveBuilding}
-            className="min-h-[44px]"
+            className="min-h-[48px] rounded-xl mt-2"
             accessibilityRole="button"
             accessibilityLabel="保存房屋信息"
           >
-            <Button.Label>保存房屋信息</Button.Label>
+            <Button.Label className="font-semibold">保存房屋信息</Button.Label>
           </Button>
         </Card.Body>
       </Card>
 
-      <Card className="border border-border bg-surface">
-        <Card.Body className="gap-2">
+      <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4">
+        <Card.Body className="gap-4 p-5">
           <SectionTitle>新增楼层</SectionTitle>
           <TextField isRequired>
             <Label>楼层名称</Label>
@@ -122,7 +122,7 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
               value={floorName}
               onChangeText={setFloorName}
               placeholder="例如：2层"
-              className="min-h-[44px]"
+              className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
             />
           </TextField>
           <TextField isRequired>
@@ -132,17 +132,17 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
               onChangeText={setFloorLevel}
               keyboardType="number-pad"
               placeholder="例如：2"
-              className="min-h-[44px]"
+              className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
             />
           </TextField>
           <Button
             variant="primary"
             onPress={handleAddFloor}
-            className="min-h-[44px]"
+            className="min-h-[48px] rounded-xl mt-2"
             accessibilityRole="button"
             accessibilityLabel="保存楼层"
           >
-            <Button.Label>保存楼层</Button.Label>
+            <Button.Label className="font-semibold">保存楼层</Button.Label>
           </Button>
         </Card.Body>
       </Card>
@@ -156,40 +156,44 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
       ) : null}
 
       {building.floors.map((floor) => (
-        <Card key={floor.id} className="border border-border bg-surface">
-          <Card.Header className="flex-row items-center justify-between">
-            <Card.Title>
+        <Card key={floor.id} className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4">
+          <Card.Header className="flex-row items-center justify-between p-5 pb-2">
+            <Card.Title className="text-lg font-bold">
               {floor.name}（第 {floor.level} 层）
             </Card.Title>
             <Button
               variant="danger-soft"
               size="sm"
-              className="min-h-[44px]"
+              className="min-h-[40px] px-4 rounded-xl bg-danger/10"
               onPress={() => deleteFloor(building.id, floor.id)}
               accessibilityRole="button"
               accessibilityLabel={`删除${floor.name}`}
             >
-              <Button.Label>删除楼层</Button.Label>
+              <Button.Label className="text-danger font-medium text-sm">删除楼层</Button.Label>
             </Button>
           </Card.Header>
-          <Card.Body className="gap-2">
+          <Card.Body className="gap-3 px-5">
             {floor.rooms.length === 0 ? (
-              <Card.Description>暂无房间</Card.Description>
+              <Card.Description className="py-2">暂无房间</Card.Description>
             ) : (
               floor.rooms.map((room) => (
                 <View
                   key={room.id}
-                  className="rounded-xl border border-border-secondary bg-surface-secondary p-3 gap-2"
+                  className="rounded-xl border border-white/50 dark:border-white/10 bg-white/40 dark:bg-black/20 p-4 gap-3"
                 >
-                  <Text className="text-foreground font-semibold">{room.name}</Text>
-                  <Text className="text-sm text-muted">
-                    月账单数：{room.monthlyFees.length}
-                  </Text>
-                  <View className="flex-row gap-2">
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-foreground font-bold text-base">{room.name}</Text>
+                    <View className="bg-primary/10 px-2 py-1 rounded-full">
+                      <Text className="text-xs text-primary font-medium">
+                        {room.monthlyFees.length} 账单
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="flex-row gap-3 mt-1">
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="min-h-[44px]"
+                      className="flex-1 min-h-[44px] rounded-xl border-primary/30"
                       onPress={() =>
                         navigation.navigate('RoomMonthlyFee', {
                           buildingId: building.id,
@@ -200,50 +204,51 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
                       accessibilityRole="button"
                       accessibilityLabel={`打开${room.name}费用明细`}
                     >
-                      <Button.Label>费用明细</Button.Label>
+                      <Button.Label className="text-primary font-medium text-sm">费用明细</Button.Label>
                     </Button>
                     <Button
                       variant="danger-soft"
                       size="sm"
-                      className="min-h-[44px]"
+                      className="min-h-[44px] px-5 rounded-xl bg-danger/10"
                       onPress={() => deleteRoom(building.id, floor.id, room.id)}
                       accessibilityRole="button"
                       accessibilityLabel={`删除${room.name}`}
                     >
-                      <Button.Label>删除房间</Button.Label>
+                      <Button.Label className="text-danger font-medium text-sm">删除</Button.Label>
                     </Button>
                   </View>
                 </View>
               ))
             )}
           </Card.Body>
-          <Card.Footer className="gap-2">
+          <Card.Footer className="gap-3 p-5 pt-3 border-t border-border/50">
             <TextField isRequired>
               <Label>新增房间</Label>
-              <Input
-                value={roomInputs[floor.id] ?? ''}
-                onChangeText={(text) =>
-                  setRoomInputs((prev) => ({ ...prev, [floor.id]: text }))
-                }
-                onFocus={() => {
-                  setTimeout(() => {
-                    scrollRef.current?.scrollToEnd({ animated: true });
-                  }, 260);
-                }}
-                placeholder="例如：201"
-                className="min-h-[44px]"
-              />
+              <View className="flex-row gap-3">
+                <Input
+                  value={roomInputs[floor.id] ?? ''}
+                  onChangeText={(text) =>
+                    setRoomInputs((prev) => ({ ...prev, [floor.id]: text }))
+                  }
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollRef.current?.scrollToEnd({ animated: true });
+                    }, 260);
+                  }}
+                  placeholder="例如：201"
+                  className="flex-1 min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
+                />
+                <Button
+                  variant="primary"
+                  className="min-h-[48px] px-6 rounded-xl"
+                  onPress={() => handleAddRoom(floor.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`在${floor.name}保存房间`}
+                >
+                  <Button.Label className="font-semibold">保存房间</Button.Label>
+                </Button>
+              </View>
             </TextField>
-            <Button
-              variant="primary"
-              size="sm"
-              className="min-h-[44px]"
-              onPress={() => handleAddRoom(floor.id)}
-              accessibilityRole="button"
-              accessibilityLabel={`在${floor.name}保存房间`}
-            >
-              <Button.Label>保存房间</Button.Label>
-            </Button>
           </Card.Footer>
         </Card>
       ))}

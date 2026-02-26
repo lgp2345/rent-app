@@ -104,36 +104,38 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
       <ScreenContainer withBottomSpace>
         <Text className={typography.pageTitle + ' text-foreground'}>费用中心</Text>
 
-        <Card className="border border-border bg-surface">
-          <Card.Body className="gap-2">
-            <Card.Title>{context.room.name}</Card.Title>
-            <Card.Description>
+        <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4">
+          <Card.Body className="gap-2 p-5">
+            <Card.Title className="text-xl font-bold">{context.room.name}</Card.Title>
+            <Card.Description className="text-muted">
               {context.building.name} / {context.floor.name}
             </Card.Description>
           </Card.Body>
         </Card>
 
-        <Card className="border border-border bg-surface">
-          <Card.Body className="gap-2">
+        <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4">
+          <Card.Body className="gap-4 p-5">
             <SectionTitle>月度费用录入</SectionTitle>
             <TextField isRequired>
               <Label>月份（YYYY-MM）</Label>
-              <Input
-                value={month}
-                onChangeText={setMonth}
-                placeholder="例如：2026-02"
-                className="min-h-[44px]"
-              />
+              <View className="flex-row gap-3">
+                <Input
+                  value={month}
+                  onChangeText={setMonth}
+                  placeholder="例如：2026-02"
+                  className="flex-1 min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
+                />
+                <Button
+                  variant="secondary"
+                  className="min-h-[48px] px-4 rounded-xl border-primary/30"
+                  onPress={handleLoadMonth}
+                  accessibilityRole="button"
+                  accessibilityLabel="加载当前月份费用"
+                >
+                  <Button.Label className="text-primary font-medium">加载现有</Button.Label>
+                </Button>
+              </View>
             </TextField>
-            <Button
-              variant="secondary"
-              className="min-h-[44px]"
-              onPress={handleLoadMonth}
-              accessibilityRole="button"
-              accessibilityLabel="加载当前月份费用"
-            >
-              <Button.Label>加载该月已存在费用</Button.Label>
-            </Button>
 
             <AmountField
               label="租金"
@@ -166,46 +168,49 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
                 value={values.note}
                 onChangeText={(text) => setValues((prev) => ({ ...prev, note: text }))}
                 placeholder="可选"
-                className="min-h-[44px]"
+                className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
               />
             </TextField>
 
-            <View className="rounded-xl bg-accent-soft px-3 py-2">
-              <Text className={typography.caption + ' text-accent-soft-foreground'}>本月预计总额</Text>
-              <Text className={typography.amount + ' text-accent-soft-foreground'}>
+            <View className="flex-row items-center justify-between rounded-xl bg-accent/10 px-5 py-4 mt-2 border border-accent/20">
+              <Text className="text-sm font-medium text-accent">本月预计总额</Text>
+              <Text className="text-xl font-bold text-accent">
                 {Number.isNaN(total) ? '-' : total.toFixed(2)}
               </Text>
             </View>
           </Card.Body>
         </Card>
 
-        <Card className="border border-border bg-surface">
-          <Card.Body className="gap-2">
+        <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-24">
+          <Card.Body className="gap-3 p-5">
             <SectionTitle>历史月份</SectionTitle>
             {context.room.monthlyFees.length === 0 ? (
-              <Card.Description>暂无历史账单</Card.Description>
+              <Card.Description className="py-2">暂无历史账单</Card.Description>
             ) : (
               context.room.monthlyFees.map((fee) => (
                 <View
                   key={fee.id}
-                  className="rounded-xl border border-border-secondary bg-surface-secondary p-3 gap-2"
+                  className="rounded-xl border border-white/50 dark:border-white/10 bg-white/40 dark:bg-black/20 p-4 gap-3"
                 >
-                  <Text className="font-semibold text-foreground">{fee.month}</Text>
-                  <Text className="text-sm text-muted">
-                    合计：
-                    {(
-                      fee.rent +
-                      fee.water +
-                      fee.electricity +
-                      fee.internet +
-                      fee.other
-                    ).toFixed(2)}
-                  </Text>
-                  <View className="flex-row gap-2">
+                  <View className="flex-row items-center justify-between">
+                    <Text className="font-bold text-lg text-foreground">{fee.month}</Text>
+                    <View className="bg-primary/10 px-3 py-1 rounded-full">
+                      <Text className="text-sm font-bold text-primary">
+                        ¥ {(
+                          fee.rent +
+                          fee.water +
+                          fee.electricity +
+                          fee.internet +
+                          fee.other
+                        ).toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="flex-row gap-3 mt-1">
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="min-h-[44px]"
+                      className="flex-1 min-h-[44px] rounded-xl border-primary/30"
                       onPress={() => {
                         setMonth(fee.month);
                         setValues({
@@ -220,19 +225,19 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
                       accessibilityRole="button"
                       accessibilityLabel={`将${fee.month}费用填充到表单`}
                     >
-                      <Button.Label>填充到表单</Button.Label>
+                      <Button.Label className="text-primary font-medium text-sm">填充表单</Button.Label>
                     </Button>
                     <Button
                       size="sm"
                       variant="danger-soft"
-                      className="min-h-[44px]"
+                      className="min-h-[44px] px-5 rounded-xl bg-danger/10"
                       onPress={() =>
                         deleteMonthlyFee(buildingId, floorId, roomId, fee.month)
                       }
                       accessibilityRole="button"
                       accessibilityLabel={`删除${fee.month}费用`}
                     >
-                      <Button.Label>删除</Button.Label>
+                      <Button.Label className="text-danger font-medium text-sm">删除</Button.Label>
                     </Button>
                   </View>
                 </View>
@@ -241,15 +246,15 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
           </Card.Body>
         </Card>
       </ScreenContainer>
-      <View className="absolute left-4 right-4 bottom-6">
+      <View className="absolute left-4 right-4 bottom-8">
         <Button
           variant="primary"
           onPress={handleSave}
-          className="min-h-[48px] shadow-lg"
+          className="min-h-[56px] shadow-xl rounded-2xl"
           accessibilityRole="button"
           accessibilityLabel="保存本月费用"
         >
-          <Button.Label>保存本月费用</Button.Label>
+          <Button.Label className="font-bold text-lg">保存本月费用</Button.Label>
         </Button>
       </View>
     </View>
