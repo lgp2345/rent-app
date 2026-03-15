@@ -1,5 +1,5 @@
 import type { ReactNode, RefObject } from 'react';
-import { Platform, ScrollView, View, StyleSheet } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,7 +19,7 @@ export const ScreenContainer = ({
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[StyleSheet.absoluteFill, safeAreaTop && { top: insets.top }]}>
+    <View style={{ flex: 1, paddingTop: safeAreaTop ? insets.top : 0 }}>
       <KeyboardAwareScrollView
         enableOnAndroid
         extraHeight={Platform.OS === 'ios' ? 24 : 160}

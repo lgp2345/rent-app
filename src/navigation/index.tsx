@@ -19,12 +19,12 @@ export const AppNavigation = () => {
         <Stack.Screen
           name="BuildingDetail"
           component={BuildingDetailScreen}
-          options={{ title: '房屋详情' }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="RoomMonthlyFee"
           component={RoomMonthlyFeeScreen}
-          options={{ title: '月度费用' }}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

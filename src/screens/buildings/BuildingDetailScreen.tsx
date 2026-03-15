@@ -10,6 +10,7 @@ import { Alert, ScrollView, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useRentalStore } from '../../store/rentalStore';
 import type { RootStackParamList } from '../../navigation/types';
+import { HeaderBar } from '../../ui/HeaderBar';
 import { ScreenContainer } from '../../ui/ScreenContainer';
 import { SectionTitle } from '../../ui/SectionTitle';
 import { typography } from '../../theme/tokens';
@@ -42,9 +43,8 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
     if (building) {
       setName(building.name);
       setAddress(building.address);
-      navigation.setOptions({ title: building.name });
     }
-  }, [building, navigation]);
+  }, [building]);
 
   if (!building) {
     return (
@@ -88,6 +88,7 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
 
   return (
     <View className="flex-1 bg-background">
+      <HeaderBar title={building.name} />
       <ScreenContainer scrollRef={scrollRef} withBottomSpace>
         <View className="flex-row gap-3 mb-4">
           <Button
@@ -96,8 +97,20 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
             onPress={() => setIsBuildingSheetOpen(true)}
           >
             <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-              <Path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              <Path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              <Path
+                d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <Path
+                d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </Svg>
             <Button.Label className="text-primary font-medium">房屋信息</Button.Label>
           </Button>
@@ -107,7 +120,12 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
             onPress={() => setIsFloorSheetOpen(true)}
           >
             <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-              <Path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
+              <Path
+                d="M12 5v14M5 12h14"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+              />
             </Svg>
             <Button.Label className="text-primary font-medium">新增楼层</Button.Label>
           </Button>
@@ -116,7 +134,9 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
         {building.floors.length === 0 ? (
           <Card variant="secondary" className="border border-border">
             <Card.Body>
-              <Card.Description className={typography.body}>还没有楼层，请先新增。</Card.Description>
+              <Card.Description className={typography.body}>
+                还没有楼层，请先新增。
+              </Card.Description>
             </Card.Body>
           </Card>
         ) : null}
@@ -183,7 +203,9 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
                         accessibilityRole="button"
                         accessibilityLabel={`删除${room.name}`}
                       >
-                        <Button.Label className="text-danger font-medium text-sm">删除</Button.Label>
+                        <Button.Label className="text-danger font-medium text-sm">
+                          删除
+                        </Button.Label>
                       </Button>
                     </View>
                   </View>
@@ -196,7 +218,9 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
                 <View className="flex-row gap-3">
                   <Input
                     value={roomInputs[floor.id] ?? ''}
-                    onChangeText={(text) => setRoomInputs((prev) => ({ ...prev, [floor.id]: text }))}
+                    onChangeText={(text) =>
+                      setRoomInputs((prev) => ({ ...prev, [floor.id]: text }))
+                    }
                     onFocus={() => {
                       setTimeout(() => {
                         scrollRef.current?.scrollToEnd({ animated: true });
@@ -251,10 +275,7 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
                 >
                   <Button.Label>取消</Button.Label>
                 </Button>
-                <Button
-                  className="flex-1 min-h-[48px] rounded-xl"
-                  onPress={handleSaveBuilding}
-                >
+                <Button className="flex-1 min-h-[48px] rounded-xl" onPress={handleSaveBuilding}>
                   <Button.Label>保存</Button.Label>
                 </Button>
               </View>
@@ -286,10 +307,7 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
                 >
                   <Button.Label>取消</Button.Label>
                 </Button>
-                <Button
-                  className="flex-1 min-h-[48px] rounded-xl"
-                  onPress={handleAddFloor}
-                >
+                <Button className="flex-1 min-h-[48px] rounded-xl" onPress={handleAddFloor}>
                   <Button.Label>保存</Button.Label>
                 </Button>
               </View>
