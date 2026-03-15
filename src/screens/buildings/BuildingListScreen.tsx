@@ -7,6 +7,7 @@ import { Label } from 'heroui-native/label';
 import { TextField } from 'heroui-native/text-field';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { typography } from '../../theme/tokens';
 import { ScreenContainer } from '../../ui/ScreenContainer';
 import DraggableView from 'react-native-draggable-floating';
@@ -184,12 +185,14 @@ export const BuildingListScreen = ({ navigation }: Props) => {
       </BottomSheet>
       <DraggableView initialOffsetY={600}>
         <Button
-          className="min-h-[48px] rounded-xl"
+          className="h-[48px] w-[48px] rounded-full"
           onPress={() => setIsCreateSheetOpen(true)}
           accessibilityRole="button"
           accessibilityLabel="新增房屋"
         >
-          <Button.Label className="font-medium">新增房屋</Button.Label>
+          <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+            <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
+          </Svg>
         </Button>
       </DraggableView>
     </View>
