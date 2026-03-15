@@ -1,20 +1,22 @@
 import { useCallback, useState } from 'react';
-import { Alert, type ScrollView, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
+import { BottomSheet } from 'heroui-native';
 import { Button } from 'heroui-native/button';
 import { Card } from 'heroui-native/card';
 import { Input } from 'heroui-native/input';
 import { Label } from 'heroui-native/label';
 import { TextField } from 'heroui-native/text-field';
+import { Plus } from 'lucide-react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useRentalStore } from '../../store/rentalStore';
 import type { Floor } from '../../types/rental';
 import type { RootStackParamList } from '../../navigation/types';
+import { SectionTitle } from '../../ui/SectionTitle';
 
 type Props = {
   buildingId: string;
   floor: Floor;
   navigation: NativeStackNavigationProp<RootStackParamList, 'BuildingDetail'>;
-  scrollRef: React.RefObject<ScrollView | null>;
 };
 
 const RoomItem = ({
@@ -70,77 +72,103 @@ const RoomItem = ({
   );
 };
 
-export const FloorCard = ({ buildingId, floor, navigation, scrollRef }: Props) => {
+export const FloorCard = ({ buildingId, floor, navigation }: Props) => {
   const deleteFloor = useRentalStore((state) => state.deleteFloor);
   const addRoom = useRentalStore((state) => state.addRoom);
   const [roomName, setRoomName] = useState('');
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const handleAddRoom = useCallback(() => {
     try {
       addRoom(buildingId, floor.id, { name: roomName });
       setRoomName('');
+      setIsSheetOpen(false);
     } catch (error) {
       Alert.alert('新增房间失败', error instanceof Error ? error.message : '请检查输入');
     }
   }, [addRoom, buildingId, floor.id, roomName]);
 
   return (
-    <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4">
-      <Card.Header className="flex-row items-center justify-between p-5 pb-2">
-        <Card.Title className="text-lg font-bold">{floor.name}</Card.Title>
-        <Button
-          variant="danger-soft"
-          size="sm"
-          className="min-h-[40px] px-4 rounded-xl bg-danger/10"
-          onPress={() => deleteFloor(buildingId, floor.id)}
-          accessibilityRole="button"
-          accessibilityLabel={`删除${floor.name}`}
-        >
-          <Button.Label className="text-danger font-medium text-sm">删除楼层</Button.Label>
-        </Button>
-      </Card.Header>
-      <Card.Body className="gap-3 px-5">
-        {floor.rooms.length === 0 ? (
-          <Card.Description className="py-2">暂无房间</Card.Description>
-        ) : (
-          floor.rooms.map((room) => (
-            <RoomItem
-              key={room.id}
-              buildingId={buildingId}
-              floorId={floor.id}
-              room={room}
-              navigation={navigation}
-            />
-          ))
-        )}
-      </Card.Body>
-      <Card.Footer className="gap-3 p-5 pt-3 border-t border-border/50">
-        <TextField isRequired>
-          <Label>新增房间</Label>
-          <View className="flex-row gap-3">
-            <Input
-              value={roomName}
-              onChangeText={setRoomName}
-              onFocus={() => {
-                setTimeout(() => {
-                  scrollRef.current?.scrollToEnd({ animated: true });
-                }, 260);
-              }}
-              placeholder="例如：201"
-              className="flex-1 min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
-            />
+    <>
+      <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4">
+        <Card.Header className="flex-row items-center justify-between p-5 pb-2">
+          <Card.Title className="text-lg font-bold">{floor.name}</Card.Title>
+          <View className="flex-row gap-2">
             <Button
-              variant="primary"
-              className="min-h-[48px] px-6 rounded-xl"
-              onPress={handleAddRoom}
+              variant="secondary"
+              size="sm"
+              className="min-h-[40px] px-4 rounded-xl border-primary/30"
+              onPress={() => setIsSheetOpen(true)}
               accessibilityRole="button"
-              accessibilityLabel={`在${floor.name}保存房间`}
+              accessibilityLabel={`在${floor.name}新增房间`}
             >
-              <Button.Label className="font-semibold">保存</Button.Label>
+              <Plus size={14} className="text-primary" />
+              <Button.Label className="text-primary font-medium text-sm">新增房间</Button.Label>
+            </Button>
+            <Button
+              variant="danger-soft"
+              size="sm"
+              className="min-h-[40px] px-4 rounded-xl bg-danger/10"
+              onPress={() => deleteFloor(buildingId, floor.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`删除${floor.name}`}
+            >
+              <Button.Label className="text-danger font-medium text-sm">删除</Button.Label>
             </Button>
           </View>
-        </TextField>
-      </Card.Footer>
-    </Card>
+        </Card.Header>
+        <Card.Body className="gap-3 px-5">
+          {floor.rooms.length === 0 ? (
+            <Card.Description className="py-2">暂无房间</Card.Description>
+          ) : (
+            floor.rooms.map((room) => (
+              <RoomItem
+                key={room.id}
+                buildingId={buildingId}
+                floorId={floor.id}
+                room={room}
+                navigation={navigation}
+              />
+            ))
+          )}
+        </Card.Body>
+      </Card>
+
+      <BottomSheet isOpen={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <BottomSheet.Portal>
+          <BottomSheet.Overlay />
+          <BottomSheet.Content
+            keyboardBehavior="interactive"
+            keyboardBlurBehavior="restore"
+            backgroundClassName="bg-background rounded-t-4xl"
+          >
+            <View className="gap-4">
+              <SectionTitle>{`${floor.name} - 新增房间`}</SectionTitle>
+              <TextField isRequired>
+                <Label>房间名称</Label>
+                <Input
+                  value={roomName}
+                  onChangeText={setRoomName}
+                  placeholder="例如：201"
+                  className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
+                />
+              </TextField>
+              <View className="flex-row gap-3 pt-2">
+                <Button
+                  variant="secondary"
+                  className="flex-1 min-h-[48px] rounded-xl"
+                  onPress={() => setIsSheetOpen(false)}
+                >
+                  <Button.Label>取消</Button.Label>
+                </Button>
+                <Button className="flex-1 min-h-[48px] rounded-xl" onPress={handleAddRoom}>
+                  <Button.Label>保存</Button.Label>
+                </Button>
+              </View>
+            </View>
+          </BottomSheet.Content>
+        </BottomSheet.Portal>
+      </BottomSheet>
+    </>
   );
 };

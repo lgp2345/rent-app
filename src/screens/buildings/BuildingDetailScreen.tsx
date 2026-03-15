@@ -113,7 +113,6 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
             buildingId={building.id}
             floor={floor}
             navigation={navigation}
-            scrollRef={scrollRef}
           />
         ))}
       </ScreenContainer>
