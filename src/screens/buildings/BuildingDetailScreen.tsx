@@ -121,7 +121,11 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
       <BottomSheet isOpen={isBuildingSheetOpen} onOpenChange={setIsBuildingSheetOpen}>
         <BottomSheet.Portal>
           <BottomSheet.Overlay />
-          <BottomSheet.Content keyboardBehavior="interactive" keyboardBlurBehavior="restore">
+          <BottomSheet.Content
+            keyboardBehavior="interactive"
+            keyboardBlurBehavior="restore"
+            backgroundClassName="bg-background rounded-t-4xl"
+          >
             <View className="gap-4">
               <SectionTitle>房屋信息</SectionTitle>
               <TextField isRequired>
@@ -160,7 +164,11 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
       <BottomSheet isOpen={isFloorSheetOpen} onOpenChange={setIsFloorSheetOpen}>
         <BottomSheet.Portal>
           <BottomSheet.Overlay />
-          <BottomSheet.Content keyboardBehavior="interactive" keyboardBlurBehavior="restore">
+          <BottomSheet.Content
+            keyboardBehavior="interactive"
+            keyboardBlurBehavior="restore"
+            backgroundClassName="bg-background rounded-t-4xl"
+          >
             <View className="gap-4">
               <SectionTitle>新增楼层</SectionTitle>
               <TextField isRequired>

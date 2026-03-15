@@ -137,7 +137,7 @@ export const BuildingListScreen = ({ navigation }: Props) => {
       <BottomSheet isOpen={isCreateSheetOpen} onOpenChange={setIsCreateSheetOpen}>
         <BottomSheet.Portal>
           <BottomSheet.Overlay />
-          <BottomSheet.Content keyboardBehavior="interactive" keyboardBlurBehavior="restore">
+          <BottomSheet.Content keyboardBehavior="interactive" keyboardBlurBehavior="restore" backgroundClassName="bg-background rounded-t-4xl">
             <View className="gap-4">
               <SectionTitle>新增房屋</SectionTitle>
               <TextField isRequired>
