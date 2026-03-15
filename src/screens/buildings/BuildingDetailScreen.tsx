@@ -6,7 +6,7 @@ import { Input } from 'heroui-native/input';
 import { Label } from 'heroui-native/label';
 import { TextField } from 'heroui-native/text-field';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
 import { Pencil, Plus } from 'lucide-react-native';
 import { useRentalStore } from '../../store/rentalStore';
 import type { RootStackParamList } from '../../navigation/types';
@@ -14,6 +14,7 @@ import { HeaderBar } from '../../ui/HeaderBar';
 import { ScreenContainer } from '../../ui/ScreenContainer';
 import { SectionTitle } from '../../ui/SectionTitle';
 import { typography } from '../../theme/tokens';
+import { FloorCard } from './FloorCard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BuildingDetail'>;
 
@@ -23,9 +24,6 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
   const updateBuilding = useRentalStore((state) => state.updateBuilding);
   const addFloor = useRentalStore((state) => state.addFloor);
   const deleteFloor = useRentalStore((state) => state.deleteFloor);
-  const addRoom = useRentalStore((state) => state.addRoom);
-  const deleteRoom = useRentalStore((state) => state.deleteRoom);
-
   const building = useMemo(
     () => buildings.find((item) => item.id === buildingId),
     [buildings, buildingId],
@@ -34,7 +32,6 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
   const [name, setName] = useState(building?.name ?? '');
   const [address, setAddress] = useState(building?.address ?? '');
   const [floorName, setFloorName] = useState('');
-  const [roomInputs, setRoomInputs] = useState<Record<string, string>>({});
   const [isBuildingSheetOpen, setIsBuildingSheetOpen] = useState(false);
   const [isFloorSheetOpen, setIsFloorSheetOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -77,15 +74,6 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
     }
   };
 
-  const handleAddRoom = (floorId: string) => {
-    try {
-      addRoom(building.id, floorId, { name: roomInputs[floorId] ?? '' });
-      setRoomInputs((prev) => ({ ...prev, [floorId]: '' }));
-    } catch (error) {
-      Alert.alert('新增房间失败', error instanceof Error ? error.message : '请检查输入');
-    }
-  };
-
   return (
     <View className="flex-1 bg-background">
       <HeaderBar title={building.name} />
@@ -120,106 +108,13 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
         ) : null}
 
         {building.floors.map((floor) => (
-          <Card
+          <FloorCard
             key={floor.id}
-            className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4"
-          >
-            <Card.Header className="flex-row items-center justify-between p-5 pb-2">
-              <Card.Title className="text-lg font-bold">{floor.name}</Card.Title>
-              <Button
-                variant="danger-soft"
-                size="sm"
-                className="min-h-[40px] px-4 rounded-xl bg-danger/10"
-                onPress={() => deleteFloor(building.id, floor.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`删除${floor.name}`}
-              >
-                <Button.Label className="text-danger font-medium text-sm">删除楼层</Button.Label>
-              </Button>
-            </Card.Header>
-            <Card.Body className="gap-3 px-5">
-              {floor.rooms.length === 0 ? (
-                <Card.Description className="py-2">暂无房间</Card.Description>
-              ) : (
-                floor.rooms.map((room) => (
-                  <View
-                    key={room.id}
-                    className="rounded-xl border border-white/50 dark:border-white/10 bg-white/40 dark:bg-black/20 p-4 gap-3"
-                  >
-                    <View className="flex-row items-center justify-between">
-                      <Text className="text-foreground font-bold text-base">{room.name}</Text>
-                      <View className="bg-primary/10 px-2 py-1 rounded-full">
-                        <Text className="text-xs text-primary font-medium">
-                          {room.monthlyFees.length} 账单
-                        </Text>
-                      </View>
-                    </View>
-                    <View className="flex-row gap-3 mt-1">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="flex-1 min-h-[44px] rounded-xl border-primary/30"
-                        onPress={() =>
-                          navigation.navigate('RoomMonthlyFee', {
-                            buildingId: building.id,
-                            floorId: floor.id,
-                            roomId: room.id,
-                          })
-                        }
-                        accessibilityRole="button"
-                        accessibilityLabel={`打开${room.name}费用明细`}
-                      >
-                        <Button.Label className="text-primary font-medium text-sm">
-                          费用明细
-                        </Button.Label>
-                      </Button>
-                      <Button
-                        variant="danger-soft"
-                        size="sm"
-                        className="min-h-[44px] px-5 rounded-xl bg-danger/10"
-                        onPress={() => deleteRoom(building.id, floor.id, room.id)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`删除${room.name}`}
-                      >
-                        <Button.Label className="text-danger font-medium text-sm">
-                          删除
-                        </Button.Label>
-                      </Button>
-                    </View>
-                  </View>
-                ))
-              )}
-            </Card.Body>
-            <Card.Footer className="gap-3 p-5 pt-3 border-t border-border/50">
-              <TextField isRequired>
-                <Label>新增房间</Label>
-                <View className="flex-row gap-3">
-                  <Input
-                    value={roomInputs[floor.id] ?? ''}
-                    onChangeText={(text) =>
-                      setRoomInputs((prev) => ({ ...prev, [floor.id]: text }))
-                    }
-                    onFocus={() => {
-                      setTimeout(() => {
-                        scrollRef.current?.scrollToEnd({ animated: true });
-                      }, 260);
-                    }}
-                    placeholder="例如：201"
-                    className="flex-1 min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
-                  />
-                  <Button
-                    variant="primary"
-                    className="min-h-[48px] px-6 rounded-xl"
-                    onPress={() => handleAddRoom(floor.id)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`在${floor.name}保存房间`}
-                  >
-                    <Button.Label className="font-semibold">保存</Button.Label>
-                  </Button>
-                </View>
-              </TextField>
-            </Card.Footer>
-          </Card>
+            buildingId={building.id}
+            floor={floor}
+            navigation={navigation}
+            scrollRef={scrollRef}
+          />
         ))}
       </ScreenContainer>
 
