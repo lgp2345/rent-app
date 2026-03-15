@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
+import { ChevronLeft } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 type Props = {
   title: string;
@@ -22,15 +22,7 @@ export const HeaderBar = ({ title, showBack = true }: Props) => {
             accessibilityRole="button"
             accessibilityLabel="返回"
           >
-            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-              <Path
-                d="M15 18l-6-6 6-6"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
+            <ChevronLeft size={22} className="text-foreground" />
           </Pressable>
         ) : (
           <View className="w-[36px]" />

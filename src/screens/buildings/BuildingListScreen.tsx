@@ -8,7 +8,7 @@ import { TextField } from 'heroui-native/text-field';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
-import Svg, { Path } from 'react-native-svg';
+import { Plus } from 'lucide-react-native';
 import { typography } from '../../theme/tokens';
 import { ScreenContainer } from '../../ui/ScreenContainer';
 import DraggableView from 'react-native-draggable-floating';
@@ -188,9 +188,7 @@ export const BuildingListScreen = ({ navigation }: Props) => {
           accessibilityRole="button"
           accessibilityLabel="新增房屋"
         >
-          <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-            <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
-          </Svg>
+          <Plus size={24} color="#fff" />
         </Button>
       </DraggableView>
     </View>
