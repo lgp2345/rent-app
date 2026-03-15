@@ -47,9 +47,9 @@ export const BuildingListScreen = ({ navigation }: Props) => {
       // });
       toast.show({
         component: (props) => (
-          <Toast variant="warning" {...props}>
-            <Toast.Title>Custom Toast</Toast.Title>
-            <Toast.Description>This uses a custom component</Toast.Description>
+          <Toast variant="danger" {...props}>
+            <Toast.Title>新增失败</Toast.Title>
+            <Toast.Description>{JSON.stringify(props)}</Toast.Description>
             <Toast.Close className="absolute top-2 right-2" />
           </Toast>
         ),
@@ -148,16 +148,16 @@ export const BuildingListScreen = ({ navigation }: Props) => {
                 <Input
                   value={name}
                   onChangeText={setName}
-                  placeholder="例如：幸福里 1 栋"
+                  placeholder="例如：房屋1"
                   className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
                 />
               </TextField>
-              <TextField isRequired>
+              <TextField>
                 <Label>地址</Label>
                 <Input
                   value={address}
                   onChangeText={setAddress}
-                  placeholder="例如：杭州市西湖区文三路 88 号"
+                  placeholder="例如：xxx路 xxx 号"
                   className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
                 />
               </TextField>

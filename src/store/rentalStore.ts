@@ -81,12 +81,9 @@ export const useRentalStore = create<RentalState>((set) => ({
     const data = await loadRentalData();
     set({ buildings: data.buildings, hydrated: true });
   },
-  createBuilding: ({ name, address }) => {
+  createBuilding: ({ name, address = '' }) => {
     const normalizedAddress = address.trim();
     const normalizedName = name.trim();
-    if (!normalizedAddress) {
-      throw new Error('地址不能为空');
-    }
     if (!normalizedName) {
       throw new Error('名称不能为空');
     }
