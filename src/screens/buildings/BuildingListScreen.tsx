@@ -7,6 +7,7 @@ import { Label } from 'heroui-native/label';
 import { TextField } from 'heroui-native/text-field';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
+
 import Svg, { Path } from 'react-native-svg';
 import { typography } from '../../theme/tokens';
 import { ScreenContainer } from '../../ui/ScreenContainer';
@@ -59,7 +60,7 @@ export const BuildingListScreen = ({ navigation }: Props) => {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenContainer withBottomSpace>
+      <ScreenContainer withBottomSpace safeAreaTop>
         <View className="flex-row items-baseline justify-between mb-4">
           <Text className={typography.pageTitle + ' text-foreground'}>房屋管理</Text>
           <View className="flex-row items-center gap-2">

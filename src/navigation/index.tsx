@@ -14,7 +14,7 @@ export const AppNavigation = () => {
         <Stack.Screen
           name="BuildingList"
           component={BuildingListScreen}
-          options={{ title: '房屋列表' }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="BuildingDetail"
