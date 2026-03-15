@@ -41,4 +41,3 @@ export const ScreenContainer = ({ children, withBottomSpace = false, scrollRef }
     </View>
   );
 };
-

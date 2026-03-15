@@ -95,11 +95,19 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
           <Text className="text-xs text-muted">先维护房屋基础信息，再继续配置楼层和房间</Text>
           <TextField isRequired>
             <Label>房屋名称</Label>
-            <Input value={name} onChangeText={setName} className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border" />
+            <Input
+              value={name}
+              onChangeText={setName}
+              className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
+            />
           </TextField>
           <TextField isRequired>
             <Label>地址</Label>
-            <Input value={address} onChangeText={setAddress} className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border" />
+            <Input
+              value={address}
+              onChangeText={setAddress}
+              className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
+            />
           </TextField>
           <Button
             variant="primary"
@@ -156,7 +164,10 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
       ) : null}
 
       {building.floors.map((floor) => (
-        <Card key={floor.id} className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4">
+        <Card
+          key={floor.id}
+          className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4"
+        >
           <Card.Header className="flex-row items-center justify-between p-5 pb-2">
             <Card.Title className="text-lg font-bold">
               {floor.name}（第 {floor.level} 层）
@@ -204,7 +215,9 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
                       accessibilityRole="button"
                       accessibilityLabel={`打开${room.name}费用明细`}
                     >
-                      <Button.Label className="text-primary font-medium text-sm">费用明细</Button.Label>
+                      <Button.Label className="text-primary font-medium text-sm">
+                        费用明细
+                      </Button.Label>
                     </Button>
                     <Button
                       variant="danger-soft"
@@ -227,9 +240,7 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
               <View className="flex-row gap-3">
                 <Input
                   value={roomInputs[floor.id] ?? ''}
-                  onChangeText={(text) =>
-                    setRoomInputs((prev) => ({ ...prev, [floor.id]: text }))
-                  }
+                  onChangeText={(text) => setRoomInputs((prev) => ({ ...prev, [floor.id]: text }))}
                   onFocus={() => {
                     setTimeout(() => {
                       scrollRef.current?.scrollToEnd({ animated: true });

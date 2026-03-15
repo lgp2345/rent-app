@@ -196,7 +196,8 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
                     <Text className="font-bold text-lg text-foreground">{fee.month}</Text>
                     <View className="bg-primary/10 px-3 py-1 rounded-full">
                       <Text className="text-sm font-bold text-primary">
-                        ¥ {(
+                        ¥{' '}
+                        {(
                           fee.rent +
                           fee.water +
                           fee.electricity +
@@ -225,15 +226,15 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
                       accessibilityRole="button"
                       accessibilityLabel={`将${fee.month}费用填充到表单`}
                     >
-                      <Button.Label className="text-primary font-medium text-sm">填充表单</Button.Label>
+                      <Button.Label className="text-primary font-medium text-sm">
+                        填充表单
+                      </Button.Label>
                     </Button>
                     <Button
                       size="sm"
                       variant="danger-soft"
                       className="min-h-[44px] px-5 rounded-xl bg-danger/10"
-                      onPress={() =>
-                        deleteMonthlyFee(buildingId, floorId, roomId, fee.month)
-                      }
+                      onPress={() => deleteMonthlyFee(buildingId, floorId, roomId, fee.month)}
                       accessibilityRole="button"
                       accessibilityLabel={`删除${fee.month}费用`}
                     >

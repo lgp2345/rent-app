@@ -2,8 +2,7 @@ import { create } from 'zustand';
 import { loadRentalData, saveRentalData } from '../storage/rentalStorage';
 import type { Building, Floor, MonthlyFee, Room } from '../types/rental';
 
-const createId = () =>
-  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+const createId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 
 const normalizeName = (value: string) => value.trim().toLowerCase();
 
@@ -14,10 +13,7 @@ type RentalState = {
   hydrated: boolean;
   hydrate: () => Promise<void>;
   createBuilding: (input: { name: string; address: string }) => void;
-  updateBuilding: (
-    buildingId: string,
-    input: { name: string; address: string },
-  ) => void;
+  updateBuilding: (buildingId: string, input: { name: string; address: string }) => void;
   deleteBuilding: (buildingId: string) => void;
   addFloor: (buildingId: string, input: { name: string; level: number }) => void;
   updateFloor: (
@@ -40,12 +36,7 @@ type RentalState = {
     roomId: string,
     input: Omit<MonthlyFee, 'id'>,
   ) => void;
-  deleteMonthlyFee: (
-    buildingId: string,
-    floorId: string,
-    roomId: string,
-    month: string,
-  ) => void;
+  deleteMonthlyFee: (buildingId: string, floorId: string, roomId: string, month: string) => void;
 };
 
 const updateAndPersist = (

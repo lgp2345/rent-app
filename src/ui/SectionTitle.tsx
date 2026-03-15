@@ -5,5 +5,9 @@ type Props = {
 };
 
 export const SectionTitle = ({ children }: Props) => {
-  return <Text className="text-[16px] leading-6 font-semibold tracking-tight text-foreground">{children}</Text>;
+  return (
+    <Text className="text-[16px] leading-6 font-semibold tracking-tight text-foreground">
+      {children}
+    </Text>
+  );
 };
