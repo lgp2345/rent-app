@@ -31,7 +31,6 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
   const [name, setName] = useState(building?.name ?? '');
   const [address, setAddress] = useState(building?.address ?? '');
   const [floorName, setFloorName] = useState('');
-  const [floorLevel, setFloorLevel] = useState('');
   const [roomInputs, setRoomInputs] = useState<Record<string, string>>({});
   const scrollRef = useRef<ScrollView>(null);
 
@@ -67,10 +66,8 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
     try {
       addFloor(building.id, {
         name: floorName,
-        level: Number.parseInt(floorLevel, 10),
       });
       setFloorName('');
-      setFloorLevel('');
     } catch (error) {
       Alert.alert('新增楼层失败', error instanceof Error ? error.message : '请检查输入');
     }
@@ -87,10 +84,8 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
 
   return (
     <ScreenContainer scrollRef={scrollRef}>
-      <Text className={typography.pageTitle + ' text-foreground'}>{building.name}</Text>
-
       <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4">
-        <Card.Body className="gap-4 p-5">
+        <Card.Body className="gap-4">
           <SectionTitle>房屋信息</SectionTitle>
           <Text className="text-xs text-muted">先维护房屋基础信息，再继续配置楼层和房间</Text>
           <TextField isRequired>
@@ -101,7 +96,7 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
               className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
             />
           </TextField>
-          <TextField isRequired>
+          <TextField>
             <Label>地址</Label>
             <Input
               value={address}
@@ -122,7 +117,7 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
       </Card>
 
       <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4">
-        <Card.Body className="gap-4 p-5">
+        <Card.Body className="gap-4">
           <SectionTitle>新增楼层</SectionTitle>
           <TextField isRequired>
             <Label>楼层名称</Label>
@@ -130,16 +125,6 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
               value={floorName}
               onChangeText={setFloorName}
               placeholder="例如：2层"
-              className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
-            />
-          </TextField>
-          <TextField isRequired>
-            <Label>楼层编号</Label>
-            <Input
-              value={floorLevel}
-              onChangeText={setFloorLevel}
-              keyboardType="number-pad"
-              placeholder="例如：2"
               className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
             />
           </TextField>
@@ -169,9 +154,7 @@ export const BuildingDetailScreen = ({ route, navigation }: Props) => {
           className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4"
         >
           <Card.Header className="flex-row items-center justify-between p-5 pb-2">
-            <Card.Title className="text-lg font-bold">
-              {floor.name}（第 {floor.level} 层）
-            </Card.Title>
+            <Card.Title className="text-lg font-bold">{floor.name}</Card.Title>
             <Button
               variant="danger-soft"
               size="sm"

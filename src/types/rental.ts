@@ -18,7 +18,6 @@ export type Room = {
 export type Floor = {
   id: string;
   name: string;
-  level: number;
   rooms: Room[];
 };
 

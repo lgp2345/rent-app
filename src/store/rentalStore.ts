@@ -15,11 +15,11 @@ type RentalState = {
   createBuilding: (input: { name: string; address: string }) => void;
   updateBuilding: (buildingId: string, input: { name: string; address: string }) => void;
   deleteBuilding: (buildingId: string) => void;
-  addFloor: (buildingId: string, input: { name: string; level: number }) => void;
+  addFloor: (buildingId: string, input: { name: string }) => void;
   updateFloor: (
     buildingId: string,
     floorId: string,
-    input: { name: string; level: number },
+    input: { name: string },
   ) => void;
   deleteFloor: (buildingId: string, floorId: string) => void;
   addRoom: (buildingId: string, floorId: string, input: { name: string }) => void;
@@ -125,27 +125,20 @@ export const useRentalStore = create<RentalState>((set) => ({
       buildings.filter((building) => building.id !== buildingId),
     );
   },
-  addFloor: (buildingId, { name, level }) => {
+  addFloor: (buildingId, { name }) => {
     const normalizedName = name.trim();
     if (!normalizedName) {
       throw new Error('楼层名称不能为空');
     }
-    if (!Number.isInteger(level)) {
-      throw new Error('楼层必须是整数');
-    }
     updateAndPersist(set, (buildings) => {
       const bIdx = ensureBuilding(buildings, buildingId);
       const building = buildings[bIdx];
-      const duplicatedLevel = building.floors.some((floor) => floor.level === level);
-      if (duplicatedLevel) {
-        throw new Error('同一房屋内楼层编号不能重复');
-      }
       const nextBuilding: Building = {
         ...building,
         floors: [
           ...building.floors,
-          { id: createId(), name: normalizedName, level, rooms: [] },
-        ].sort((a, b) => a.level - b.level),
+          { id: createId(), name: normalizedName, rooms: [] },
+        ],
         updatedAt: new Date().toISOString(),
       };
       const next = [...buildings];
@@ -153,29 +146,20 @@ export const useRentalStore = create<RentalState>((set) => ({
       return next;
     });
   },
-  updateFloor: (buildingId, floorId, { name, level }) => {
+  updateFloor: (buildingId, floorId, { name }) => {
     const normalizedName = name.trim();
     if (!normalizedName) {
       throw new Error('楼层名称不能为空');
-    }
-    if (!Number.isInteger(level)) {
-      throw new Error('楼层必须是整数');
     }
     updateAndPersist(set, (buildings) => {
       const bIdx = ensureBuilding(buildings, buildingId);
       const building = buildings[bIdx];
       const fIdx = ensureFloor(building, floorId);
-      const duplicatedLevel = building.floors.some(
-        (floor, index) => floor.level === level && index !== fIdx,
-      );
-      if (duplicatedLevel) {
-        throw new Error('同一房屋内楼层编号不能重复');
-      }
       const nextFloors = [...building.floors];
-      nextFloors[fIdx] = { ...nextFloors[fIdx], name: normalizedName, level };
+      nextFloors[fIdx] = { ...nextFloors[fIdx], name: normalizedName };
       const nextBuilding: Building = {
         ...building,
-        floors: nextFloors.sort((a, b) => a.level - b.level),
+        floors: nextFloors,
         updatedAt: new Date().toISOString(),
       };
       const next = [...buildings];

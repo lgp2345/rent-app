@@ -38,13 +38,6 @@ export const BuildingListScreen = ({ navigation }: Props) => {
       setAddress('');
       return true;
     } catch (error) {
-      // toast.show({
-      //   label: '新增失败',
-      //   description: error instanceof Error ? error.message : '请检查输入',
-      //   variant: 'warning',
-      //   actionLabel: '关闭',
-      //       onActionPress: ({ hide }) => hide(),
-      // });
       toast.show({
         component: (props) => (
           <Toast variant="danger" {...props}>
@@ -99,12 +92,16 @@ export const BuildingListScreen = ({ navigation }: Props) => {
                     </Text>
                   </View>
                 </View>
-                <Card.Description className="text-muted mt-1">{building.address}</Card.Description>
+                {building.address && (
+                  <Card.Description className="text-muted mt-1">
+                    {building.address}
+                  </Card.Description>
+                )}
                 <Text className={typography.caption + ' text-muted mt-2'}>
                   共 {building.floors.length} 个楼层
                 </Text>
               </Card.Body>
-              <Card.Footer className="flex-row gap-3 px-5 pb-5 pt-2 border-t border-border/50">
+              <Card.Footer className="flex-row gap-3 px-5 pt-5 border-t border-border/50">
                 <Button
                   variant="secondary"
                   className="flex-1 min-h-[48px] rounded-xl border-primary/30"
