@@ -17,8 +17,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RoomMonthlyFee'>;
 
 const emptyFee = {
   rent: '',
-  water: '',
-  electricity: '',
+  waterUsage: '',
+  electricityUsage: '',
   internet: '',
   other: '',
   note: '',
@@ -58,30 +58,43 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
     );
   }
 
-  const currentFee = context.room.monthlyFees.find((item) => item.month === month.trim());
+  const room = context.room;
+  const waterPrice = room.waterPricePerTon ?? 0;
+  const elecPrice = room.electricityPricePerKWh ?? 0;
+
+  const currentFee = room.monthlyFees.find((item) => item.month === month.trim());
 
   const handleLoadMonth = () => {
     if (!currentFee) {
-      setValues(emptyFee);
+      setValues({
+        ...emptyFee,
+        rent: room.rent != null ? String(room.rent) : '',
+        internet: room.internetFee != null ? String(room.internetFee) : '',
+      });
       return;
     }
     setValues({
       rent: String(currentFee.rent),
-      water: String(currentFee.water),
-      electricity: String(currentFee.electricity),
+      waterUsage: currentFee.waterUsage != null ? String(currentFee.waterUsage) : '',
+      electricityUsage: currentFee.electricityUsage != null ? String(currentFee.electricityUsage) : '',
       internet: String(currentFee.internet),
       other: String(currentFee.other),
       note: currentFee.note ?? '',
     });
   };
 
+  const waterTotal = asAmount(values.waterUsage) * waterPrice;
+  const elecTotal = asAmount(values.electricityUsage) * elecPrice;
+
   const handleSave = () => {
     try {
       upsertMonthlyFee(buildingId, floorId, roomId, {
         month: month.trim(),
         rent: asAmount(values.rent),
-        water: asAmount(values.water),
-        electricity: asAmount(values.electricity),
+        water: waterTotal,
+        waterUsage: asAmount(values.waterUsage) || undefined,
+        electricity: elecTotal,
+        electricityUsage: asAmount(values.electricityUsage) || undefined,
         internet: asAmount(values.internet),
         other: asAmount(values.other),
         note: values.note.trim() || undefined,
@@ -94,8 +107,8 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
 
   const total =
     asAmount(values.rent) +
-    asAmount(values.water) +
-    asAmount(values.electricity) +
+    waterTotal +
+    elecTotal +
     asAmount(values.internet) +
     asAmount(values.other);
 
@@ -142,16 +155,30 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
               value={values.rent}
               onChangeText={(text) => setValues((prev) => ({ ...prev, rent: text }))}
             />
-            <AmountField
-              label="水费"
-              value={values.water}
-              onChangeText={(text) => setValues((prev) => ({ ...prev, water: text }))}
-            />
-            <AmountField
-              label="电费"
-              value={values.electricity}
-              onChangeText={(text) => setValues((prev) => ({ ...prev, electricity: text }))}
-            />
+            <View className="gap-1">
+              <AmountField
+                label={`用水量（吨） 单价: ${waterPrice} 元/吨`}
+                value={values.waterUsage}
+                onChangeText={(text) => setValues((prev) => ({ ...prev, waterUsage: text }))}
+              />
+              {values.waterUsage ? (
+                <Text className="text-xs text-muted px-1">
+                  {values.waterUsage} × {waterPrice} = {waterTotal.toFixed(2)} 元
+                </Text>
+              ) : null}
+            </View>
+            <View className="gap-1">
+              <AmountField
+                label={`用电量（度） 单价: ${elecPrice} 元/度`}
+                value={values.electricityUsage}
+                onChangeText={(text) => setValues((prev) => ({ ...prev, electricityUsage: text }))}
+              />
+              {values.electricityUsage ? (
+                <Text className="text-xs text-muted px-1">
+                  {values.electricityUsage} × {elecPrice} = {elecTotal.toFixed(2)} 元
+                </Text>
+              ) : null}
+            </View>
             <AmountField
               label="网费"
               value={values.internet}
@@ -216,8 +243,8 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
                         setMonth(fee.month);
                         setValues({
                           rent: String(fee.rent),
-                          water: String(fee.water),
-                          electricity: String(fee.electricity),
+                          waterUsage: fee.waterUsage != null ? String(fee.waterUsage) : '',
+                          electricityUsage: fee.electricityUsage != null ? String(fee.electricityUsage) : '',
                           internet: String(fee.internet),
                           other: String(fee.other),
                           note: fee.note ?? '',

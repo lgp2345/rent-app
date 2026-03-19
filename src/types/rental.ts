@@ -3,7 +3,9 @@ export type MonthlyFee = {
   month: string;
   rent: number;
   water: number;
+  waterUsage?: number;
   electricity: number;
+  electricityUsage?: number;
   internet: number;
   other: number;
   note?: string;
@@ -12,6 +14,14 @@ export type MonthlyFee = {
 export type Room = {
   id: string;
   name: string;
+  tenantName?: string;
+  tenantPhone?: string;
+  tenantIdCard?: string;
+  rent?: number;
+  waterPricePerTon?: number;
+  electricityPricePerKWh?: number;
+  internetFee?: number;
+  note?: string;
   monthlyFees: MonthlyFee[];
 };
 

@@ -8,6 +8,18 @@ const normalizeName = (value: string) => value.trim().toLowerCase();
 
 const normalizeMonth = (month: string) => month.trim();
 
+type RoomInput = {
+  name: string;
+  tenantName?: string;
+  tenantPhone?: string;
+  tenantIdCard?: string;
+  rent?: number;
+  waterPricePerTon?: number;
+  electricityPricePerKWh?: number;
+  internetFee?: number;
+  note?: string;
+};
+
 type RentalState = {
   buildings: Building[];
   hydrated: boolean;
@@ -22,12 +34,12 @@ type RentalState = {
     input: { name: string },
   ) => void;
   deleteFloor: (buildingId: string, floorId: string) => void;
-  addRoom: (buildingId: string, floorId: string, input: { name: string }) => void;
+  addRoom: (buildingId: string, floorId: string, input: RoomInput) => void;
   updateRoom: (
     buildingId: string,
     floorId: string,
     roomId: string,
-    input: { name: string },
+    input: RoomInput,
   ) => void;
   deleteRoom: (buildingId: string, floorId: string, roomId: string) => void;
   upsertMonthlyFee: (
@@ -181,7 +193,7 @@ export const useRentalStore = create<RentalState>((set) => ({
       return next;
     });
   },
-  addRoom: (buildingId, floorId, { name }) => {
+  addRoom: (buildingId, floorId, { name, tenantName, tenantPhone, tenantIdCard, rent, waterPricePerTon, electricityPricePerKWh, internetFee, note }) => {
     const normalizedName = name.trim();
     if (!normalizedName) {
       throw new Error('房间名称不能为空');
@@ -200,7 +212,19 @@ export const useRentalStore = create<RentalState>((set) => ({
       const nextFloors = [...building.floors];
       nextFloors[fIdx] = {
         ...floor,
-        rooms: [...floor.rooms, { id: createId(), name: normalizedName, monthlyFees: [] }],
+        rooms: [...floor.rooms, {
+          id: createId(),
+          name: normalizedName,
+          tenantName: tenantName?.trim() || undefined,
+          tenantPhone: tenantPhone?.trim() || undefined,
+          tenantIdCard: tenantIdCard?.trim() || undefined,
+          rent,
+          waterPricePerTon,
+          electricityPricePerKWh,
+          internetFee,
+          note: note?.trim() || undefined,
+          monthlyFees: [],
+        }],
       };
       const nextBuilding: Building = {
         ...building,
@@ -212,7 +236,7 @@ export const useRentalStore = create<RentalState>((set) => ({
       return next;
     });
   },
-  updateRoom: (buildingId, floorId, roomId, { name }) => {
+  updateRoom: (buildingId, floorId, roomId, { name, tenantName, tenantPhone, tenantIdCard, rent, waterPricePerTon, electricityPricePerKWh, internetFee, note }) => {
     const normalizedName = name.trim();
     if (!normalizedName) {
       throw new Error('房间名称不能为空');
@@ -231,7 +255,18 @@ export const useRentalStore = create<RentalState>((set) => ({
         throw new Error('同一楼层内房间名称不能重复');
       }
       const nextRooms = [...floor.rooms];
-      nextRooms[rIdx] = { ...nextRooms[rIdx], name: normalizedName };
+      nextRooms[rIdx] = {
+        ...nextRooms[rIdx],
+        name: normalizedName,
+        tenantName: tenantName?.trim() || undefined,
+        tenantPhone: tenantPhone?.trim() || undefined,
+        tenantIdCard: tenantIdCard?.trim() || undefined,
+        rent,
+        waterPricePerTon,
+        electricityPricePerKWh,
+        internetFee,
+        note: note?.trim() || undefined,
+      };
       const nextFloors = [...building.floors];
       nextFloors[fIdx] = { ...floor, rooms: nextRooms };
       const nextBuilding: Building = {
