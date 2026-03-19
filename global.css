@@ -41,7 +41,7 @@
     --separator: hsl(175 77% 26% / 0.1);
     --focus: hsl(201 96% 32%);
     --link: hsl(201 96% 32%);
-    --radius: 0.75rem;
+    --radius: 0.35rem;
   }
 
   @variant dark {
@@ -80,6 +80,6 @@
     --separator: hsl(166 71% 96% / 0.1);
     --focus: hsl(201 96% 42%);
     --link: hsl(201 96% 42%);
-    --radius: 0.75rem;
+    --radius: 0.35rem;
   }
 }
