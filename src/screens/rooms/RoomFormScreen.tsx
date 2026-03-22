@@ -17,9 +17,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RoomForm'>;
 
 type FormValues = {
   name: string;
-  tenantName: string;
-  tenantPhone: string;
-  tenantIdCard: string;
   rent: string;
   waterPricePerTon: string;
   electricityPricePerKWh: string;
@@ -29,9 +26,6 @@ type FormValues = {
 
 const emptyForm: FormValues = {
   name: '',
-  tenantName: '',
-  tenantPhone: '',
-  tenantIdCard: '',
   rent: '',
   waterPricePerTon: '',
   electricityPricePerKWh: '',
@@ -41,9 +35,6 @@ const emptyForm: FormValues = {
 
 const toStoreInput = (v: FormValues) => ({
   name: v.name,
-  tenantName: v.tenantName,
-  tenantPhone: v.tenantPhone,
-  tenantIdCard: v.tenantIdCard,
   rent: v.rent ? Number(v.rent) : undefined,
   waterPricePerTon: v.waterPricePerTon ? Number(v.waterPricePerTon) : undefined,
   electricityPricePerKWh: v.electricityPricePerKWh ? Number(v.electricityPricePerKWh) : undefined,
@@ -71,9 +62,6 @@ export const RoomFormScreen = ({ route, navigation }: Props) => {
     const r = context.room;
     return {
       name: r.name,
-      tenantName: r.tenantName ?? '',
-      tenantPhone: r.tenantPhone ?? '',
-      tenantIdCard: r.tenantIdCard ?? '',
       rent: r.rent != null ? String(r.rent) : '',
       waterPricePerTon: r.waterPricePerTon != null ? String(r.waterPricePerTon) : '',
       electricityPricePerKWh:
@@ -135,34 +123,6 @@ export const RoomFormScreen = ({ route, navigation }: Props) => {
                 value={values.name}
                 onChangeText={(t) => set('name', t)}
                 placeholder="例如：201"
-                className={inputClass}
-              />
-            </TextField>
-            <TextField>
-              <Label>租户姓名</Label>
-              <Input
-                value={values.tenantName}
-                onChangeText={(t) => set('tenantName', t)}
-                placeholder="可选"
-                className={inputClass}
-              />
-            </TextField>
-            <TextField>
-              <Label>租户电话</Label>
-              <Input
-                value={values.tenantPhone}
-                onChangeText={(t) => set('tenantPhone', t)}
-                keyboardType="phone-pad"
-                placeholder="可选"
-                className={inputClass}
-              />
-            </TextField>
-            <TextField>
-              <Label>租户身份证</Label>
-              <Input
-                value={values.tenantIdCard}
-                onChangeText={(t) => set('tenantIdCard', t)}
-                placeholder="可选"
                 className={inputClass}
               />
             </TextField>
