@@ -4,6 +4,7 @@ import { BuildingDetailScreen } from '../screens/buildings/BuildingDetailScreen'
 import { BuildingListScreen } from '../screens/buildings/BuildingListScreen';
 import { RoomFormScreen } from '../screens/rooms/RoomFormScreen';
 import { RoomMonthlyFeeScreen } from '../screens/rooms/RoomMonthlyFeeScreen';
+import { RoomTenantScreen } from '../screens/rooms/RoomTenantScreen';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -30,6 +31,11 @@ export const AppNavigation = () => {
         <Stack.Screen
           name="RoomMonthlyFee"
           component={RoomMonthlyFeeScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="RoomTenant"
+          component={RoomTenantScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

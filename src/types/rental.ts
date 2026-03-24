@@ -11,12 +11,19 @@ export type MonthlyFee = {
   note?: string;
 };
 
+export type Tenant = {
+  id: string;
+  name: string;
+  phone?: string;
+  idCard?: string;
+};
+
 export type Room = {
   id: string;
   name: string;
-  tenantName?: string;
-  tenantPhone?: string;
-  tenantIdCard?: string;
+  tenants?: Tenant[];
+  leaseStartDate?: string;
+  leaseEndDate?: string;
   rent?: number;
   waterPricePerTon?: number;
   electricityPricePerKWh?: number;

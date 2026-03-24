@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { Accordion, Dialog } from 'heroui-native';
 import { Button } from 'heroui-native/button';
 import { Card } from 'heroui-native/card';
-import { Info, Plus, Receipt, Trash2 } from 'lucide-react-native';
+import { Info, Plus, Receipt, Trash2, Users } from 'lucide-react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useRentalStore } from '../../store/rentalStore';
 import type { Floor } from '../../types/rental';
@@ -52,6 +52,21 @@ const RoomItem = ({
               accessibilityLabel={`${room.name}信息`}
             >
               <Info size={24} className="text-primary" />
+            </Button>
+            <Button
+              variant="tertiary"
+              size="sm"
+              className="min-h-[40px] min-w-[40px] rounded-xl border-primary/30 px-3"
+              onPress={() =>
+                navigation.navigate('RoomTenant', {
+                  buildingId,
+                  floorId,
+                  roomId: room.id,
+                })
+              }
+              accessibilityLabel={`${room.name}租户管理`}
+            >
+              <Users size={24} className="text-primary" />
             </Button>
             <Button
               variant="tertiary"

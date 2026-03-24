@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { loadRentalData, saveRentalData } from '../storage/rentalStorage';
-import type { Building, Floor, MonthlyFee, Room } from '../types/rental';
+import type { Building, Floor, MonthlyFee, Room, Tenant } from '../types/rental';
 
 const createId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -28,19 +28,10 @@ type RentalState = {
   updateBuilding: (buildingId: string, input: { name: string; address: string }) => void;
   deleteBuilding: (buildingId: string) => void;
   addFloor: (buildingId: string, input: { name: string }) => void;
-  updateFloor: (
-    buildingId: string,
-    floorId: string,
-    input: { name: string },
-  ) => void;
+  updateFloor: (buildingId: string, floorId: string, input: { name: string }) => void;
   deleteFloor: (buildingId: string, floorId: string) => void;
   addRoom: (buildingId: string, floorId: string, input: RoomInput) => void;
-  updateRoom: (
-    buildingId: string,
-    floorId: string,
-    roomId: string,
-    input: RoomInput,
-  ) => void;
+  updateRoom: (buildingId: string, floorId: string, roomId: string, input: RoomInput) => void;
   deleteRoom: (buildingId: string, floorId: string, roomId: string) => void;
   upsertMonthlyFee: (
     buildingId: string,
@@ -49,6 +40,12 @@ type RentalState = {
     input: Omit<MonthlyFee, 'id'>,
   ) => void;
   deleteMonthlyFee: (buildingId: string, floorId: string, roomId: string, month: string) => void;
+  updateRoomTenants: (
+    buildingId: string,
+    floorId: string,
+    roomId: string,
+    input: { tenants: Tenant[]; leaseStartDate?: string; leaseEndDate?: string },
+  ) => void;
 };
 
 const updateAndPersist = (
@@ -147,10 +144,7 @@ export const useRentalStore = create<RentalState>((set) => ({
       const building = buildings[bIdx];
       const nextBuilding: Building = {
         ...building,
-        floors: [
-          ...building.floors,
-          { id: createId(), name: normalizedName, rooms: [] },
-        ],
+        floors: [...building.floors, { id: createId(), name: normalizedName, rooms: [] }],
         updatedAt: new Date().toISOString(),
       };
       const next = [...buildings];
@@ -193,7 +187,21 @@ export const useRentalStore = create<RentalState>((set) => ({
       return next;
     });
   },
-  addRoom: (buildingId, floorId, { name, tenantName, tenantPhone, tenantIdCard, rent, waterPricePerTon, electricityPricePerKWh, internetFee, note }) => {
+  addRoom: (
+    buildingId,
+    floorId,
+    {
+      name,
+      tenantName,
+      tenantPhone,
+      tenantIdCard,
+      rent,
+      waterPricePerTon,
+      electricityPricePerKWh,
+      internetFee,
+      note,
+    },
+  ) => {
     const normalizedName = name.trim();
     if (!normalizedName) {
       throw new Error('房间名称不能为空');
@@ -212,19 +220,19 @@ export const useRentalStore = create<RentalState>((set) => ({
       const nextFloors = [...building.floors];
       nextFloors[fIdx] = {
         ...floor,
-        rooms: [...floor.rooms, {
-          id: createId(),
-          name: normalizedName,
-          tenantName: tenantName?.trim() || undefined,
-          tenantPhone: tenantPhone?.trim() || undefined,
-          tenantIdCard: tenantIdCard?.trim() || undefined,
-          rent,
-          waterPricePerTon,
-          electricityPricePerKWh,
-          internetFee,
-          note: note?.trim() || undefined,
-          monthlyFees: [],
-        }],
+        rooms: [
+          ...floor.rooms,
+          {
+            id: createId(),
+            name: normalizedName,
+            rent,
+            waterPricePerTon,
+            electricityPricePerKWh,
+            internetFee,
+            note: note?.trim() || undefined,
+            monthlyFees: [],
+          },
+        ],
       };
       const nextBuilding: Building = {
         ...building,
@@ -236,7 +244,22 @@ export const useRentalStore = create<RentalState>((set) => ({
       return next;
     });
   },
-  updateRoom: (buildingId, floorId, roomId, { name, tenantName, tenantPhone, tenantIdCard, rent, waterPricePerTon, electricityPricePerKWh, internetFee, note }) => {
+  updateRoom: (
+    buildingId,
+    floorId,
+    roomId,
+    {
+      name,
+      tenantName,
+      tenantPhone,
+      tenantIdCard,
+      rent,
+      waterPricePerTon,
+      electricityPricePerKWh,
+      internetFee,
+      note,
+    },
+  ) => {
     const normalizedName = name.trim();
     if (!normalizedName) {
       throw new Error('房间名称不能为空');
@@ -258,9 +281,6 @@ export const useRentalStore = create<RentalState>((set) => ({
       nextRooms[rIdx] = {
         ...nextRooms[rIdx],
         name: normalizedName,
-        tenantName: tenantName?.trim() || undefined,
-        tenantPhone: tenantPhone?.trim() || undefined,
-        tenantIdCard: tenantIdCard?.trim() || undefined,
         rent,
         waterPricePerTon,
         electricityPricePerKWh,
@@ -363,6 +383,40 @@ export const useRentalStore = create<RentalState>((set) => ({
       nextRooms[rIdx] = {
         ...room,
         monthlyFees: room.monthlyFees.filter((fee) => fee.month !== normalizedMonth),
+      };
+      const nextFloors = [...building.floors];
+      nextFloors[fIdx] = { ...floor, rooms: nextRooms };
+      const nextBuilding: Building = {
+        ...building,
+        floors: nextFloors,
+        updatedAt: new Date().toISOString(),
+      };
+      const next = [...buildings];
+      next[bIdx] = nextBuilding;
+      return next;
+    });
+  },
+  updateRoomTenants: (buildingId, floorId, roomId, { tenants, leaseStartDate, leaseEndDate }) => {
+    if (!tenants.length || !tenants.some((t) => t.name.trim())) {
+      throw new Error('至少需要一位租户且姓名不能为空');
+    }
+    updateAndPersist(set, (buildings) => {
+      const bIdx = ensureBuilding(buildings, buildingId);
+      const building = buildings[bIdx];
+      const fIdx = ensureFloor(building, floorId);
+      const floor = building.floors[fIdx];
+      const rIdx = ensureRoom(floor, roomId);
+      const nextRooms = [...floor.rooms];
+      nextRooms[rIdx] = {
+        ...nextRooms[rIdx],
+        tenants: tenants.map((t) => ({
+          ...t,
+          name: t.name.trim(),
+          phone: t.phone?.trim() || undefined,
+          idCard: t.idCard?.trim() || undefined,
+        })),
+        leaseStartDate: leaseStartDate || undefined,
+        leaseEndDate: leaseEndDate || undefined,
       };
       const nextFloors = [...building.floors];
       nextFloors[fIdx] = { ...floor, rooms: nextRooms };
