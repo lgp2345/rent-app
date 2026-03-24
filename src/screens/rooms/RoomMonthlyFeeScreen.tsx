@@ -4,14 +4,17 @@ import { Card } from 'heroui-native/card';
 import { Input } from 'heroui-native/input';
 import { Label } from 'heroui-native/label';
 import { TextField } from 'heroui-native/text-field';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
+import { Dialog } from 'heroui-native';
 import { useRentalStore } from '../../store/rentalStore';
 import type { RootStackParamList } from '../../navigation/types';
 import { typography } from '../../theme/tokens';
 import { AmountField } from '../../ui/AmountField';
 import { ScreenContainer } from '../../ui/ScreenContainer';
 import { SectionTitle } from '../../ui/SectionTitle';
+import { HeaderBar } from '../../ui/HeaderBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RoomMonthlyFee'>;
 
@@ -36,9 +39,11 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
   const buildings = useRentalStore((state) => state.buildings);
   const upsertMonthlyFee = useRentalStore((state) => state.upsertMonthlyFee);
   const deleteMonthlyFee = useRentalStore((state) => state.deleteMonthlyFee);
-  const [month, setMonth] = useState('');
-  const [values, setValues] = useState(emptyFee);
-
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const [month, setMonth] = useState(currentMonth);
+  const [pickerDate, setPickerDate] = useState(now);
+  const [showPicker, setShowPicker] = useState(false);
   const context = useMemo(() => {
     const building = buildings.find((item) => item.id === buildingId);
     const floor = building?.floors.find((item) => item.id === floorId);
@@ -62,21 +67,32 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
   const waterPrice = room.waterPricePerTon ?? 0;
   const elecPrice = room.electricityPricePerKWh ?? 0;
 
+  const defaultFee = useMemo(
+    () => ({
+      rent: room.rent != null ? String(room.rent) : '',
+      waterUsage: '',
+      electricityUsage: '',
+      internet: room.internetFee != null ? String(room.internetFee) : '',
+      other: '',
+      note: '',
+    }),
+    [room.rent, room.internetFee],
+  );
+
+  const [values, setValues] = useState(defaultFee);
+
   const currentFee = room.monthlyFees.find((item) => item.month === month.trim());
 
   const handleLoadMonth = () => {
     if (!currentFee) {
-      setValues({
-        ...emptyFee,
-        rent: room.rent != null ? String(room.rent) : '',
-        internet: room.internetFee != null ? String(room.internetFee) : '',
-      });
+      setValues(defaultFee);
       return;
     }
     setValues({
       rent: String(currentFee.rent),
       waterUsage: currentFee.waterUsage != null ? String(currentFee.waterUsage) : '',
-      electricityUsage: currentFee.electricityUsage != null ? String(currentFee.electricityUsage) : '',
+      electricityUsage:
+        currentFee.electricityUsage != null ? String(currentFee.electricityUsage) : '',
       internet: String(currentFee.internet),
       other: String(currentFee.other),
       note: currentFee.note ?? '',
@@ -86,23 +102,28 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
   const waterTotal = asAmount(values.waterUsage) * waterPrice;
   const elecTotal = asAmount(values.electricityUsage) * elecPrice;
 
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
+
+  const doSave = () => {
+    upsertMonthlyFee(buildingId, floorId, roomId, {
+      month: month.trim(),
+      rent: asAmount(values.rent),
+      water: waterTotal,
+      waterUsage: asAmount(values.waterUsage) || undefined,
+      electricity: elecTotal,
+      electricityUsage: asAmount(values.electricityUsage) || undefined,
+      internet: asAmount(values.internet),
+      other: asAmount(values.other),
+      note: values.note.trim() || undefined,
+    });
+  };
+
   const handleSave = () => {
-    try {
-      upsertMonthlyFee(buildingId, floorId, roomId, {
-        month: month.trim(),
-        rent: asAmount(values.rent),
-        water: waterTotal,
-        waterUsage: asAmount(values.waterUsage) || undefined,
-        electricity: elecTotal,
-        electricityUsage: asAmount(values.electricityUsage) || undefined,
-        internet: asAmount(values.internet),
-        other: asAmount(values.other),
-        note: values.note.trim() || undefined,
-      });
-      Alert.alert('已保存', '本月费用已更新');
-    } catch (error) {
-      Alert.alert('保存失败', error instanceof Error ? error.message : '请检查输入');
+    if (currentFee) {
+      setShowOverwriteDialog(true);
+      return;
     }
+    doSave();
   };
 
   const total =
@@ -114,9 +135,8 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
 
   return (
     <View className="flex-1 bg-background">
+      <HeaderBar title="费用中心" />
       <ScreenContainer withBottomSpace>
-        <Text className={typography.pageTitle + ' text-foreground'}>费用中心</Text>
-
         <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4">
           <Card.Body className="gap-2 p-5">
             <Card.Title className="text-xl font-bold">{context.room.name}</Card.Title>
@@ -129,26 +149,45 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
         <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-4">
           <Card.Body className="gap-4 p-5">
             <SectionTitle>月度费用录入</SectionTitle>
-            <TextField isRequired>
-              <Label>月份（YYYY-MM）</Label>
-              <View className="flex-row gap-3">
-                <Input
-                  value={month}
-                  onChangeText={setMonth}
-                  placeholder="例如：2026-02"
-                  className="flex-1 min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border"
+            <View className="gap-1">
+              <Label>月份</Label>
+              <Pressable
+                onPress={() => setShowPicker(true)}
+                className="min-h-[48px] rounded-xl border-border bg-white dark:bg-surface border justify-center px-3"
+              >
+                <Text className={month ? 'text-foreground' : 'text-muted'}>
+                  {month || '请选择月份'}
+                </Text>
+              </Pressable>
+              {showPicker && (
+                <DateTimePicker
+                  value={pickerDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  onChange={(_e, date) => {
+                    setShowPicker(Platform.OS === 'ios');
+                    if (date) {
+                      setPickerDate(date);
+                      const m = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                      setMonth(m);
+                      const fee = room.monthlyFees.find((item) => item.month === m);
+                      if (fee) {
+                        setValues({
+                          rent: String(fee.rent),
+                          waterUsage: fee.waterUsage != null ? String(fee.waterUsage) : '',
+                          electricityUsage: fee.electricityUsage != null ? String(fee.electricityUsage) : '',
+                          internet: String(fee.internet),
+                          other: String(fee.other),
+                          note: fee.note ?? '',
+                        });
+                      } else {
+                        setValues(defaultFee);
+                      }
+                    }
+                  }}
                 />
-                <Button
-                  variant="secondary"
-                  className="min-h-[48px] px-4 rounded-xl border-primary/30"
-                  onPress={handleLoadMonth}
-                  accessibilityRole="button"
-                  accessibilityLabel="加载当前月份费用"
-                >
-                  <Button.Label className="text-primary font-medium">加载现有</Button.Label>
-                </Button>
-              </View>
-            </TextField>
+              )}
+            </View>
 
             <AmountField
               label="租金"
@@ -244,7 +283,8 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
                         setValues({
                           rent: String(fee.rent),
                           waterUsage: fee.waterUsage != null ? String(fee.waterUsage) : '',
-                          electricityUsage: fee.electricityUsage != null ? String(fee.electricityUsage) : '',
+                          electricityUsage:
+                            fee.electricityUsage != null ? String(fee.electricityUsage) : '',
                           internet: String(fee.internet),
                           other: String(fee.other),
                           note: fee.note ?? '',
@@ -285,6 +325,32 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
           <Button.Label className="font-bold text-lg">保存本月费用</Button.Label>
         </Button>
       </View>
+      <Dialog isOpen={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
+        <Dialog.Portal>
+          <Dialog.Overlay />
+          <Dialog.Content>
+            <View className="mb-5 gap-1.5">
+              <Dialog.Title>账单已存在</Dialog.Title>
+              <Dialog.Description>{month} 的账单已存在，是否覆盖旧数据？</Dialog.Description>
+            </View>
+            <View className="flex-row justify-end gap-3">
+              <Button variant="ghost" size="sm" onPress={() => setShowOverwriteDialog(false)}>
+                <Button.Label>取消</Button.Label>
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onPress={() => {
+                  doSave();
+                  setShowOverwriteDialog(false);
+                }}
+              >
+                <Button.Label>确认覆盖</Button.Label>
+              </Button>
+            </View>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog>
     </View>
   );
 };
