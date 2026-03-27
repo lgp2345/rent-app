@@ -3,12 +3,14 @@ import { Card } from 'heroui-native/card';
 import { Input } from 'heroui-native/input';
 import { Label } from 'heroui-native/label';
 import { TextField } from 'heroui-native/text-field';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Accordion, Dialog } from 'heroui-native';
-import { Eye, Pencil, Trash2 } from 'lucide-react-native';
+import { Download, Eye, FileText, Pencil, Share2, Trash2 } from 'lucide-react-native';
 import type { MonthlyFee } from '../../types/rental';
 import { AmountField } from '../../ui/AmountField';
+import { ReceiptTemplate } from '../../ui/ReceiptTemplate';
+import { shareReceipt, saveReceiptToAlbum } from '../../utils/receiptCapture';
 import { SectionTitle } from '../../ui/SectionTitle';
 
 const asAmount = (value: string) => {
@@ -37,14 +39,26 @@ const FeeRow = ({
 
 type Props = {
   monthlyFees: MonthlyFee[];
+  buildingName: string;
+  floorName: string;
+  roomName: string;
   onDelete: (month: string) => void;
   onEdit: (fee: Omit<MonthlyFee, 'id'>) => void;
 };
 
-export const MonthlyFeeHistory = ({ monthlyFees, onDelete, onEdit }: Props) => {
+export const MonthlyFeeHistory = ({
+  monthlyFees,
+  buildingName,
+  floorName,
+  roomName,
+  onDelete,
+  onEdit,
+}: Props) => {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [viewTarget, setViewTarget] = useState<MonthlyFee | null>(null);
   const [editTarget, setEditTarget] = useState<MonthlyFee | null>(null);
+  const [receiptTarget, setReceiptTarget] = useState<MonthlyFee | null>(null);
+  const receiptRef = useRef<View>(null);
   const [editValues, setEditValues] = useState({
     rent: '',
     water: '',
@@ -108,6 +122,12 @@ export const MonthlyFeeHistory = ({ monthlyFees, onDelete, onEdit }: Props) => {
                               <Text className="text-sm font-bold text-primary mr-3">
                                 ¥{feeTotal.toFixed(2)}
                               </Text>
+                              <Pressable
+                                className="p-2 rounded-lg active:bg-primary/10"
+                                onPress={() => setReceiptTarget(fee)}
+                              >
+                                <FileText size={18} className="text-muted" />
+                              </Pressable>
                               <Pressable
                                 className="p-2 rounded-lg active:bg-primary/10"
                                 onPress={() => setViewTarget(fee)}
@@ -308,6 +328,54 @@ export const MonthlyFeeHistory = ({ monthlyFees, onDelete, onEdit }: Props) => {
                 }}
               >
                 <Button.Label>确认删除</Button.Label>
+              </Button>
+            </View>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog>
+
+      <Dialog
+        isOpen={receiptTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setReceiptTarget(null);
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay />
+          <Dialog.Content isSwipeable={false}>
+            <View className="mb-4 gap-1.5">
+              <Dialog.Title>{receiptTarget?.month} 收费单据</Dialog.Title>
+            </View>
+            <ScrollView style={{ maxHeight: 420 }}>
+              {receiptTarget && (
+                <ReceiptTemplate
+                  ref={receiptRef}
+                  buildingName={buildingName}
+                  floorName={floorName}
+                  roomName={roomName}
+                  fee={receiptTarget}
+                />
+              )}
+            </ScrollView>
+            <View className="flex-row justify-end gap-3 mt-4">
+              <Button variant="ghost" size="sm" onPress={() => setReceiptTarget(null)}>
+                <Button.Label>关闭</Button.Label>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={() => saveReceiptToAlbum(receiptRef)}
+              >
+                <Download size={16} className="text-foreground" />
+                <Button.Label>保存相册</Button.Label>
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onPress={() => shareReceipt(receiptRef)}
+              >
+                <Share2 size={16} className="text-white" />
+                <Button.Label>分享</Button.Label>
               </Button>
             </View>
           </Dialog.Content>

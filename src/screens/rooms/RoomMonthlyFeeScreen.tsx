@@ -5,12 +5,15 @@ import { Input } from 'heroui-native/input';
 import { Label } from 'heroui-native/label';
 import { TextField } from 'heroui-native/text-field';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useMemo, useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Dialog } from 'heroui-native';
+import { Download, Share2 } from 'lucide-react-native';
 import { useRentalStore } from '../../store/rentalStore';
 import type { RootStackParamList } from '../../navigation/types';
 import { AmountField } from '../../ui/AmountField';
+import { ReceiptTemplate } from '../../ui/ReceiptTemplate';
+import { shareReceipt, saveReceiptToAlbum } from '../../utils/receiptCapture';
 import { ScreenContainer } from '../../ui/ScreenContainer';
 import { SectionTitle } from '../../ui/SectionTitle';
 import { HeaderBar } from '../../ui/HeaderBar';
@@ -125,9 +128,22 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
   const elecTotal = elecChargeUsage * elecPrice;
 
   const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [savedFeeData, setSavedFeeData] = useState<{
+    month: string;
+    rent: number;
+    water: number;
+    waterUsage?: number;
+    electricity: number;
+    electricityUsage?: number;
+    internet: number;
+    other: number;
+    note?: string;
+  } | null>(null);
+  const receiptRef = useRef<View>(null);
 
   const doSave = () => {
-    upsertMonthlyFee(buildingId, floorId, roomId, {
+    const feeData = {
       month: month.trim(),
       rent: asAmount(values.rent),
       water: waterTotal,
@@ -137,7 +153,10 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
       internet: asAmount(values.internet),
       other: asAmount(values.other),
       note: values.note.trim() || undefined,
-    });
+    };
+    upsertMonthlyFee(buildingId, floorId, roomId, feeData);
+    setSavedFeeData(feeData);
+    setShowReceiptDialog(true);
   };
 
   const handleSave = () => {
@@ -270,6 +289,9 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
 
         <MonthlyFeeHistory
           monthlyFees={room.monthlyFees}
+          buildingName={context.building.name}
+          floorName={context.floor.name}
+          roomName={room.name}
           onDelete={(m) => deleteMonthlyFee(buildingId, floorId, roomId, m)}
           onEdit={(fee) => upsertMonthlyFee(buildingId, floorId, roomId, fee)}
         />
@@ -306,6 +328,50 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
                 }}
               >
                 <Button.Label>确认覆盖</Button.Label>
+              </Button>
+            </View>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog>
+
+      <Dialog isOpen={showReceiptDialog} onOpenChange={setShowReceiptDialog}>
+        <Dialog.Portal>
+          <Dialog.Overlay />
+          <Dialog.Content isSwipeable={false}>
+            <View className="mb-4 gap-1.5">
+              <Dialog.Title>账单已保存</Dialog.Title>
+              <Dialog.Description>是否生成收费单据？</Dialog.Description>
+            </View>
+            <ScrollView style={{ maxHeight: 420 }}>
+              {savedFeeData && (
+                <ReceiptTemplate
+                  ref={receiptRef}
+                  buildingName={context.building!.name}
+                  floorName={context.floor!.name}
+                  roomName={room.name}
+                  fee={{ id: '', ...savedFeeData }}
+                />
+              )}
+            </ScrollView>
+            <View className="flex-row justify-end gap-3 mt-4">
+              <Button variant="ghost" size="sm" onPress={() => setShowReceiptDialog(false)}>
+                <Button.Label>关闭</Button.Label>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={() => saveReceiptToAlbum(receiptRef)}
+              >
+                <Download size={16} className="text-foreground" />
+                <Button.Label>保存相册</Button.Label>
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onPress={() => shareReceipt(receiptRef)}
+              >
+                <Share2 size={16} className="text-white" />
+                <Button.Label>分享</Button.Label>
               </Button>
             </View>
           </Dialog.Content>
