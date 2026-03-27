@@ -158,7 +158,6 @@ export const MonthlyFeeHistory = ({ monthlyFees, onDelete, onEdit }: Props) => {
         <Dialog.Portal>
           <Dialog.Overlay />
           <Dialog.Content>
-            <Dialog.Close variant="ghost" />
             <View className="mb-4 gap-1.5">
               <Dialog.Title>{viewTarget?.month} 账单详情</Dialog.Title>
             </View>
