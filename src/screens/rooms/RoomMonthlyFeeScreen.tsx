@@ -10,11 +10,11 @@ import { Platform, Pressable, Text, View } from 'react-native';
 import { Dialog } from 'heroui-native';
 import { useRentalStore } from '../../store/rentalStore';
 import type { RootStackParamList } from '../../navigation/types';
-import { typography } from '../../theme/tokens';
 import { AmountField } from '../../ui/AmountField';
 import { ScreenContainer } from '../../ui/ScreenContainer';
 import { SectionTitle } from '../../ui/SectionTitle';
 import { HeaderBar } from '../../ui/HeaderBar';
+import { MonthlyFeeHistory } from './MonthlyFeeHistory';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RoomMonthlyFee'>;
 
@@ -32,6 +32,18 @@ const asAmount = (value: string) => {
     return 0;
   }
   return Number.parseFloat(value);
+};
+
+const getPreviousMonth = (month: string) => {
+  const [yearRaw, monthRaw] = month.split('-');
+  const year = Number.parseInt(yearRaw ?? '', 10);
+  const value = Number.parseInt(monthRaw ?? '', 10);
+  if (!Number.isFinite(year) || !Number.isFinite(value) || value < 1 || value > 12) {
+    return '';
+  }
+  const date = new Date(year, value - 1, 1);
+  date.setMonth(date.getMonth() - 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 };
 
 export const RoomMonthlyFeeScreen = ({ route }: Props) => {
@@ -82,6 +94,8 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
   const [values, setValues] = useState(defaultFee);
 
   const currentFee = room.monthlyFees.find((item) => item.month === month.trim());
+  const previousMonth = getPreviousMonth(month.trim());
+  const previousFee = room.monthlyFees.find((item) => item.month === previousMonth);
 
   const handleLoadMonth = () => {
     if (!currentFee) {
@@ -99,8 +113,16 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
     });
   };
 
-  const waterTotal = asAmount(values.waterUsage) * waterPrice;
-  const elecTotal = asAmount(values.electricityUsage) * elecPrice;
+  const waterReading = asAmount(values.waterUsage);
+  const elecReading = asAmount(values.electricityUsage);
+  const previousWaterReading = previousFee?.waterUsage ?? 0;
+  const previousElecReading = previousFee?.electricityUsage ?? 0;
+  const waterDiff = waterReading - previousWaterReading;
+  const elecDiff = elecReading - previousElecReading;
+  const waterChargeUsage = waterDiff > 0 ? waterDiff : 0;
+  const elecChargeUsage = elecDiff > 0 ? elecDiff : 0;
+  const waterTotal = waterChargeUsage * waterPrice;
+  const elecTotal = elecChargeUsage * elecPrice;
 
   const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
 
@@ -175,7 +197,8 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
                         setValues({
                           rent: String(fee.rent),
                           waterUsage: fee.waterUsage != null ? String(fee.waterUsage) : '',
-                          electricityUsage: fee.electricityUsage != null ? String(fee.electricityUsage) : '',
+                          electricityUsage:
+                            fee.electricityUsage != null ? String(fee.electricityUsage) : '',
                           internet: String(fee.internet),
                           other: String(fee.other),
                           note: fee.note ?? '',
@@ -196,27 +219,25 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
             />
             <View className="gap-1">
               <AmountField
-                label={`用水量（吨） 单价: ${waterPrice} 元/吨`}
+                label={`本月水表总读数（吨） 单价: ${waterPrice} 元/吨`}
                 value={values.waterUsage}
                 onChangeText={(text) => setValues((prev) => ({ ...prev, waterUsage: text }))}
               />
-              {values.waterUsage ? (
-                <Text className="text-xs text-muted px-1">
-                  {values.waterUsage} × {waterPrice} = {waterTotal.toFixed(2)} 元
-                </Text>
-              ) : null}
+              <Text className="text-xs text-muted px-1">
+                上月 {previousWaterReading}，差值 {waterDiff.toFixed(2)}， 计费用量{' '}
+                {waterChargeUsage.toFixed(2)} × {waterPrice} = {waterTotal.toFixed(2)} 元
+              </Text>
             </View>
             <View className="gap-1">
               <AmountField
-                label={`用电量（度） 单价: ${elecPrice} 元/度`}
+                label={`本月电表总读数（度） 单价: ${elecPrice} 元/度`}
                 value={values.electricityUsage}
                 onChangeText={(text) => setValues((prev) => ({ ...prev, electricityUsage: text }))}
               />
-              {values.electricityUsage ? (
-                <Text className="text-xs text-muted px-1">
-                  {values.electricityUsage} × {elecPrice} = {elecTotal.toFixed(2)} 元
-                </Text>
-              ) : null}
+              <Text className="text-xs text-muted px-1">
+                上月 {previousElecReading}，差值 {elecDiff.toFixed(2)}， 计费用量{' '}
+                {elecChargeUsage.toFixed(2)} × {elecPrice} = {elecTotal.toFixed(2)} 元
+              </Text>
             </View>
             <AmountField
               label="网费"
@@ -247,72 +268,11 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
           </Card.Body>
         </Card>
 
-        <Card className="border border-white/40 dark:border-white/10 bg-surface shadow-lg rounded-2xl mb-24">
-          <Card.Body className="gap-3 p-5">
-            <SectionTitle>历史月份</SectionTitle>
-            {context.room.monthlyFees.length === 0 ? (
-              <Card.Description className="py-2">暂无历史账单</Card.Description>
-            ) : (
-              context.room.monthlyFees.map((fee) => (
-                <View
-                  key={fee.id}
-                  className="rounded-xl border border-white/50 dark:border-white/10 bg-white/40 dark:bg-black/20 p-4 gap-3"
-                >
-                  <View className="flex-row items-center justify-between">
-                    <Text className="font-bold text-lg text-foreground">{fee.month}</Text>
-                    <View className="bg-primary/10 px-3 py-1 rounded-full">
-                      <Text className="text-sm font-bold text-primary">
-                        ¥{' '}
-                        {(
-                          fee.rent +
-                          fee.water +
-                          fee.electricity +
-                          fee.internet +
-                          fee.other
-                        ).toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="flex-row gap-3 mt-1">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="flex-1 min-h-[44px] rounded-xl border-primary/30"
-                      onPress={() => {
-                        setMonth(fee.month);
-                        setValues({
-                          rent: String(fee.rent),
-                          waterUsage: fee.waterUsage != null ? String(fee.waterUsage) : '',
-                          electricityUsage:
-                            fee.electricityUsage != null ? String(fee.electricityUsage) : '',
-                          internet: String(fee.internet),
-                          other: String(fee.other),
-                          note: fee.note ?? '',
-                        });
-                      }}
-                      accessibilityRole="button"
-                      accessibilityLabel={`将${fee.month}费用填充到表单`}
-                    >
-                      <Button.Label className="text-primary font-medium text-sm">
-                        填充表单
-                      </Button.Label>
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger-soft"
-                      className="min-h-[44px] px-5 rounded-xl bg-danger/10"
-                      onPress={() => deleteMonthlyFee(buildingId, floorId, roomId, fee.month)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`删除${fee.month}费用`}
-                    >
-                      <Button.Label className="text-danger font-medium text-sm">删除</Button.Label>
-                    </Button>
-                  </View>
-                </View>
-              ))
-            )}
-          </Card.Body>
-        </Card>
+        <MonthlyFeeHistory
+          monthlyFees={room.monthlyFees}
+          onDelete={(m) => deleteMonthlyFee(buildingId, floorId, roomId, m)}
+          onEdit={(fee) => upsertMonthlyFee(buildingId, floorId, roomId, fee)}
+        />
       </ScreenContainer>
       <View className="absolute left-4 right-4 bottom-8">
         <Button
