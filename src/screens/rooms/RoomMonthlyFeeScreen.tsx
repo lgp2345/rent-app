@@ -357,34 +357,30 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
               <Dialog.Title>账单已保存</Dialog.Title>
               <Dialog.Description>是否生成收费单据？</Dialog.Description>
             </View>
-            <ScrollView style={{ maxHeight: 420 }}>
-              {savedFeeData && (
-                <ReceiptTemplate
-                  ref={receiptRef}
-                  buildingName={context.building!.name}
-                  floorName={context.floor!.name}
-                  roomName={room.name}
-                  fee={{ id: '', ...savedFeeData }}
-                />
-              )}
+            <ScrollView horizontal showsHorizontalScrollIndicator>
+              <ScrollView style={{ maxHeight: 420 }}>
+                {savedFeeData && (
+                  <ReceiptTemplate
+                    ref={receiptRef}
+                    buildingName={context.building!.name}
+                    floorName={context.floor!.name}
+                    roomName={room.name}
+                    fee={{ id: '', ...savedFeeData }}
+                    waterPricePerTon={waterPrice}
+                    electricityPricePerKWh={elecPrice}
+                  />
+                )}
+              </ScrollView>
             </ScrollView>
             <View className="flex-row justify-end gap-3 mt-4">
               <Button variant="ghost" size="sm" onPress={() => setShowReceiptDialog(false)}>
                 <Button.Label>关闭</Button.Label>
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onPress={() => saveReceiptToAlbum(receiptRef)}
-              >
+              <Button variant="secondary" size="sm" onPress={() => saveReceiptToAlbum(receiptRef)}>
                 <Download size={16} className="text-foreground" />
                 <Button.Label>保存相册</Button.Label>
               </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onPress={() => shareReceipt(receiptRef)}
-              >
+              <Button variant="primary" size="sm" onPress={() => shareReceipt(receiptRef)}>
                 <Share2 size={16} className="text-white" />
                 <Button.Label>分享</Button.Label>
               </Button>

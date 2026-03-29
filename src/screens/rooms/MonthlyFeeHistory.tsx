@@ -428,16 +428,20 @@ export const MonthlyFeeHistory = ({
             <View className="mb-4 gap-1.5">
               <Dialog.Title>{receiptTarget?.month} 收费单据</Dialog.Title>
             </View>
-            <ScrollView style={{ maxHeight: 420 }}>
-              {receiptTarget && (
-                <ReceiptTemplate
-                  ref={receiptRef}
-                  buildingName={buildingName}
-                  floorName={floorName}
-                  roomName={roomName}
-                  fee={receiptTarget}
-                />
-              )}
+            <ScrollView horizontal showsHorizontalScrollIndicator>
+              <ScrollView style={{ maxHeight: 420 }}>
+                {receiptTarget && (
+                  <ReceiptTemplate
+                    ref={receiptRef}
+                    buildingName={buildingName}
+                    floorName={floorName}
+                    roomName={roomName}
+                    fee={receiptTarget}
+                    waterPricePerTon={waterPricePerTon}
+                    electricityPricePerKWh={electricityPricePerKWh}
+                  />
+                )}
+              </ScrollView>
             </ScrollView>
             <View className="flex-row justify-end gap-3 mt-4">
               <Button variant="ghost" size="sm" onPress={() => setReceiptTarget(null)}>
@@ -448,7 +452,7 @@ export const MonthlyFeeHistory = ({
                 <Button.Label>保存相册</Button.Label>
               </Button>
               <Button variant="primary" size="sm" onPress={() => shareReceipt(receiptRef)}>
-                <Share2 size={16} className="text-white" />
+                <Share2 size={16} color="#fff" />
                 <Button.Label>分享</Button.Label>
               </Button>
             </View>

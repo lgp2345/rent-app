@@ -26,6 +26,19 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "允许访问相册以保存收费单据",
+          "savePhotosPermission": "允许保存收费单据到相册",
+          "granularPermissions": [
+            "photo"
+          ],
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
+    ]
   }
 }

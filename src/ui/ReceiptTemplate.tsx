@@ -7,6 +7,8 @@ export type ReceiptData = {
   floorName: string;
   roomName: string;
   fee: MonthlyFee;
+  waterPricePerTon?: number;
+  electricityPricePerKWh?: number;
 };
 
 const Row = ({ label, value, bold }: { label: string; value: string; bold?: boolean }) => (
@@ -19,8 +21,15 @@ const Row = ({ label, value, bold }: { label: string; value: string; bold?: bool
 const Divider = () => <View style={s.divider} />;
 
 export const ReceiptTemplate = forwardRef<View, ReceiptData>(
-  ({ buildingName, floorName, roomName, fee }, ref) => {
-    const total = fee.rent + fee.water + fee.electricity + fee.internet + fee.other;
+  ({ buildingName, floorName, roomName, fee, waterPricePerTon = 0, electricityPricePerKWh = 0 }, ref) => {
+    const waterPrev = fee.previousSnapshot?.waterUsage ?? 0;
+    const waterDiff = fee.waterUsage != null ? fee.waterUsage - waterPrev : 0;
+    const waterAmount = fee.waterUsage != null ? waterDiff * waterPricePerTon : fee.water;
+    const electricityPrev = fee.previousSnapshot?.electricityUsage ?? 0;
+    const electricityDiff = fee.electricityUsage != null ? fee.electricityUsage - electricityPrev : 0;
+    const electricityAmount =
+      fee.electricityUsage != null ? electricityDiff * electricityPricePerKWh : fee.electricity;
+    const total = fee.rent + waterAmount + electricityAmount + fee.internet + fee.other;
     const now = new Date();
     const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
@@ -40,13 +49,29 @@ export const ReceiptTemplate = forwardRef<View, ReceiptData>(
         <View style={s.section}>
           <Text style={s.sectionTitle}>费用明细</Text>
           <Row label="租金" value={`¥ ${fee.rent.toFixed(2)}`} />
-          <Row label="水费" value={`¥ ${fee.water.toFixed(2)}`} />
+          <Row label="水费" value={`¥ ${waterAmount.toFixed(2)}`} />
           {fee.waterUsage != null && (
-            <Text style={s.subText}>水表读数：{fee.waterUsage} 吨</Text>
+            <View style={s.subBlock}>
+              <Text style={s.subText}>
+                本月{fee.waterUsage.toFixed(2)} - 上月{waterPrev.toFixed(2)} = {waterDiff.toFixed(2)}
+              </Text>
+              <Text style={s.subText}>
+                {waterDiff.toFixed(2)} × 单价{waterPricePerTon.toFixed(2)} = {waterAmount.toFixed(2)} 元
+              </Text>
+            </View>
           )}
-          <Row label="电费" value={`¥ ${fee.electricity.toFixed(2)}`} />
+          <Row label="电费" value={`¥ ${electricityAmount.toFixed(2)}`} />
           {fee.electricityUsage != null && (
-            <Text style={s.subText}>电表读数：{fee.electricityUsage} 度</Text>
+            <View style={s.subBlock}>
+              <Text style={s.subText}>
+                本月{fee.electricityUsage.toFixed(2)} - 上月{electricityPrev.toFixed(2)} ={' '}
+                {electricityDiff.toFixed(2)}
+              </Text>
+              <Text style={s.subText}>
+                {electricityDiff.toFixed(2)} × 单价{electricityPricePerKWh.toFixed(2)} ={' '}
+                {electricityAmount.toFixed(2)} 元
+              </Text>
+            </View>
           )}
           <Row label="网费" value={`¥ ${fee.internet.toFixed(2)}`} />
           {fee.other > 0 && <Row label="其他" value={`¥ ${fee.other.toFixed(2)}`} />}
@@ -132,6 +157,9 @@ const s = StyleSheet.create({
     fontSize: 11,
     color: '#94a3b8',
     paddingLeft: 8,
+  },
+  subBlock: {
+    gap: 2,
   },
   noteLabel: {
     fontSize: 12,
