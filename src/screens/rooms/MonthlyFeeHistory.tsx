@@ -42,6 +42,8 @@ type Props = {
   buildingName: string;
   floorName: string;
   roomName: string;
+  waterPricePerTon: number;
+  electricityPricePerKWh: number;
   onDelete: (month: string) => void;
   onEdit: (fee: Omit<MonthlyFee, 'id'>) => void;
 };
@@ -51,6 +53,8 @@ export const MonthlyFeeHistory = ({
   buildingName,
   floorName,
   roomName,
+  waterPricePerTon,
+  electricityPricePerKWh,
   onDelete,
   onEdit,
 }: Props) => {
@@ -114,7 +118,7 @@ export const MonthlyFeeHistory = ({
                           return (
                             <View
                               key={fee.id}
-                              className="flex-row items-center rounded-xl border border-white/50 dark:border-white/10 bg-white/40 dark:bg-black/20 px-4 py-3"
+                              className="flex-row items-center rounded-xl border border-white/50 dark:border-white/10 bg-white/40 dark:bg-black/20"
                             >
                               <Text className="font-medium text-sm text-foreground flex-1">
                                 {fee.month}
@@ -182,36 +186,114 @@ export const MonthlyFeeHistory = ({
               <Dialog.Title>{viewTarget?.month} 账单详情</Dialog.Title>
             </View>
             {viewTarget && (
-              <View className="gap-2">
-                <FeeRow label="租金" value={viewTarget.rent} />
-                <FeeRow label="水费" value={viewTarget.water} />
-                {viewTarget.waterUsage != null && (
-                  <FeeRow label="水表读数" value={viewTarget.waterUsage} unit="吨" />
-                )}
-                <FeeRow label="电费" value={viewTarget.electricity} />
-                {viewTarget.electricityUsage != null && (
-                  <FeeRow label="电表读数" value={viewTarget.electricityUsage} unit="度" />
-                )}
-                <FeeRow label="网费" value={viewTarget.internet} />
-                <FeeRow label="其他" value={viewTarget.other} />
-                <FeeRow
-                  label="合计"
-                  value={
-                    viewTarget.rent +
-                    viewTarget.water +
-                    viewTarget.electricity +
-                    viewTarget.internet +
-                    viewTarget.other
-                  }
-                  bold
-                />
-                {viewTarget.note ? (
-                  <View className="flex-row justify-between pt-1 border-t border-border mt-1">
-                    <Text className="text-sm text-muted">备注</Text>
-                    <Text className="text-sm text-foreground">{viewTarget.note}</Text>
-                  </View>
-                ) : null}
-              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator>
+                <View className="gap-2" style={{ minWidth: 300 }}>
+                  <FeeRow label="租金" value={viewTarget.rent} />
+                  {viewTarget.waterUsage != null ? (
+                    <>
+                      <FeeRow
+                        label="水费"
+                        value={
+                          (viewTarget.waterUsage - (viewTarget.previousSnapshot?.waterUsage ?? 0)) *
+                          waterPricePerTon
+                        }
+                      />
+                      <View className="flex-row justify-between">
+                        <Text className="text-sm text-muted">水费明细</Text>
+                        <View className="items-end">
+                          <Text className="text-sm text-foreground">
+                            本月{viewTarget.waterUsage.toFixed(2)} - 上月
+                            {(viewTarget.previousSnapshot?.waterUsage ?? 0).toFixed(2)} =
+                            {(
+                              viewTarget.waterUsage - (viewTarget.previousSnapshot?.waterUsage ?? 0)
+                            ).toFixed(2)}
+                          </Text>
+                          <Text className="text-sm text-foreground">
+                            {(
+                              viewTarget.waterUsage - (viewTarget.previousSnapshot?.waterUsage ?? 0)
+                            ).toFixed(2)}{' '}
+                            × 单价{waterPricePerTon.toFixed(2)} ={' '}
+                            {(
+                              (viewTarget.waterUsage -
+                                (viewTarget.previousSnapshot?.waterUsage ?? 0)) *
+                              waterPricePerTon
+                            ).toFixed(2)}{' '}
+                            元
+                          </Text>
+                        </View>
+                      </View>
+                    </>
+                  ) : (
+                    <FeeRow label="水费" value={viewTarget.water} />
+                  )}
+                  {viewTarget.electricityUsage != null ? (
+                    <>
+                      <FeeRow
+                        label="电费"
+                        value={
+                          (viewTarget.electricityUsage -
+                            (viewTarget.previousSnapshot?.electricityUsage ?? 0)) *
+                          electricityPricePerKWh
+                        }
+                      />
+                      <View className="flex-row justify-between">
+                        <Text className="text-sm text-muted">电费明细</Text>
+                        <View className="items-end">
+                          <Text className="text-sm text-foreground">
+                            本月{viewTarget.electricityUsage.toFixed(2)} - 上月
+                            {(viewTarget.previousSnapshot?.electricityUsage ?? 0).toFixed(2)} =
+                            {(
+                              viewTarget.electricityUsage -
+                              (viewTarget.previousSnapshot?.electricityUsage ?? 0)
+                            ).toFixed(2)}
+                          </Text>
+                          <Text className="text-sm text-foreground">
+                            {(
+                              viewTarget.electricityUsage -
+                              (viewTarget.previousSnapshot?.electricityUsage ?? 0)
+                            ).toFixed(2)}{' '}
+                            × 单价{electricityPricePerKWh.toFixed(2)} ={' '}
+                            {(
+                              (viewTarget.electricityUsage -
+                                (viewTarget.previousSnapshot?.electricityUsage ?? 0)) *
+                              electricityPricePerKWh
+                            ).toFixed(2)}{' '}
+                            元
+                          </Text>
+                        </View>
+                      </View>
+                    </>
+                  ) : (
+                    <FeeRow label="电费" value={viewTarget.electricity} />
+                  )}
+                  <FeeRow label="网费" value={viewTarget.internet} />
+                  <FeeRow label="其他" value={viewTarget.other} />
+                  <FeeRow
+                    label="合计"
+                    value={
+                      viewTarget.rent +
+                      (viewTarget.waterUsage != null
+                        ? (viewTarget.waterUsage - (viewTarget.previousSnapshot?.waterUsage ?? 0)) *
+                          waterPricePerTon
+                        : viewTarget.water) +
+                      (viewTarget.electricityUsage != null
+                        ? (viewTarget.electricityUsage -
+                            (viewTarget.previousSnapshot?.electricityUsage ?? 0)) *
+                          electricityPricePerKWh
+                        : viewTarget.electricity) +
+                      viewTarget.internet +
+                      viewTarget.other
+                    }
+                    bold
+                  />
+                  {viewTarget.note ? (
+                    <View className="flex-row justify-between pt-1 border-t border-border mt-1">
+                      <Text className="text-sm text-muted">备注</Text>
+                      <Text className="text-sm text-foreground">{viewTarget.note}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              </ScrollView>
             )}
           </Dialog.Content>
         </Dialog.Portal>
@@ -361,19 +443,11 @@ export const MonthlyFeeHistory = ({
               <Button variant="ghost" size="sm" onPress={() => setReceiptTarget(null)}>
                 <Button.Label>关闭</Button.Label>
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onPress={() => saveReceiptToAlbum(receiptRef)}
-              >
+              <Button variant="secondary" size="sm" onPress={() => saveReceiptToAlbum(receiptRef)}>
                 <Download size={16} className="text-foreground" />
                 <Button.Label>保存相册</Button.Label>
               </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onPress={() => shareReceipt(receiptRef)}
-              >
+              <Button variant="primary" size="sm" onPress={() => shareReceipt(receiptRef)}>
                 <Share2 size={16} className="text-white" />
                 <Button.Label>分享</Button.Label>
               </Button>

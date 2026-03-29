@@ -305,6 +305,8 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
           buildingName={context.building.name}
           floorName={context.floor.name}
           roomName={room.name}
+          waterPricePerTon={waterPrice}
+          electricityPricePerKWh={elecPrice}
           onDelete={(m) => deleteMonthlyFee(buildingId, floorId, roomId, m)}
           onEdit={(fee) => upsertMonthlyFee(buildingId, floorId, roomId, fee)}
         />
