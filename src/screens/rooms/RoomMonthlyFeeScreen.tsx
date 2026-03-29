@@ -153,6 +153,19 @@ export const RoomMonthlyFeeScreen = ({ route }: Props) => {
       internet: asAmount(values.internet),
       other: asAmount(values.other),
       note: values.note.trim() || undefined,
+      previousSnapshot: previousFee
+        ? {
+            month: previousFee.month,
+            rent: previousFee.rent,
+            water: previousFee.water,
+            waterUsage: previousFee.waterUsage,
+            electricity: previousFee.electricity,
+            electricityUsage: previousFee.electricityUsage,
+            internet: previousFee.internet,
+            other: previousFee.other,
+            note: previousFee.note,
+          }
+        : undefined,
     };
     upsertMonthlyFee(buildingId, floorId, roomId, feeData);
     setSavedFeeData(feeData);

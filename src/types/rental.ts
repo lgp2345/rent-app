@@ -9,6 +9,17 @@ export type MonthlyFee = {
   internet: number;
   other: number;
   note?: string;
+  previousSnapshot?: {
+    month: string;
+    rent: number;
+    water: number;
+    waterUsage?: number;
+    electricity: number;
+    electricityUsage?: number;
+    internet: number;
+    other: number;
+    note?: string;
+  };
 };
 
 export type Tenant = {
