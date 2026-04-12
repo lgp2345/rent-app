@@ -11,19 +11,19 @@
 
 ## 边界条件决策
 
-| 项目 | 决策 |
-|------|------|
-| 权限粒度 | 页面级（控制菜单/路由可见性） |
-| super_admin | 走权限表，默认分配所有权限 |
-| refreshToken | 落库，支持强制下线/吊销 |
-| 审计日志 | 仅关键操作 |
-| 组织维度 | 多租户 SaaS，共享数据库 + tenant_id 字段隔离 |
-| 用户体系 | 移动端暂不做登录，先做后台 RBAC |
-| 初始角色 | 两级：super_admin + admin，后续按需加 |
-| ID 策略 | BIGINT + Snowflake 雪花算法 |
-| 登录方式 | 租户编码 + 用户名或手机号 + 密码 |
-| 权限命名 | 纯页面名 snake_case（dashboard, buildings, rooms 等） |
-| 前端权限接入 | 登录时一次性返回权限列表，存 Zustand + localStorage |
+| 项目         | 决策                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------- |
+| 权限粒度     | 页面级（控制菜单/路由可见性）                                                         |
+| super_admin  | 走权限表，默认分配所有权限                                                            |
+| refreshToken | 落库，支持强制下线/吊销                                                               |
+| 审计日志     | 仅关键操作                                                                            |
+| 组织维度     | 多租户 SaaS，共享数据库 + tenant_id 字段隔离                                          |
+| 用户体系     | 移动端暂不做登录，先做后台 RBAC                                                       |
+| 初始角色     | 两级：super_admin + admin，后续按需加                                                 |
+| ID 策略      | BIGINT + Snowflake 雪花算法                                                           |
+| 登录方式     | 租户编码 + 用户名或手机号 + 密码                                                      |
+| 权限命名     | 纯页面名 snake_case（dashboard, buildings, rooms 等）                                 |
+| 前端权限接入 | 登录时一次性返回权限列表，存 Zustand + localStorage                                   |
 | 后端模块拆分 | 8 个独立模块（auth, users, permissions, audit, buildings, rooms, tenants-mgmt, fees） |
 
 ## 明确不做
@@ -42,78 +42,78 @@
 
 ### tenants（租户/组织）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | bigint | Snowflake ID |
-| code | varchar | 租户唯一编码（unique） |
-| name | varchar | 租户名称 |
-| created_at | timestamp | |
-| updated_at | timestamp | |
+| 字段       | 类型      | 说明                   |
+| ---------- | --------- | ---------------------- |
+| id         | bigint    | Snowflake ID           |
+| code       | varchar   | 租户唯一编码（unique） |
+| name       | varchar   | 租户名称               |
+| created_at | timestamp |                        |
+| updated_at | timestamp |                        |
 
 ### users（用户）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | bigint | Snowflake ID |
-| tenant_id | bigint | FK → tenants.id |
-| name | varchar | 用户名（tenant_id + name 联合唯一） |
-| phone | varchar | 手机号（tenant_id + phone 联合唯一） |
-| password_hash | varchar | bcrypt 哈希 |
-| role | varchar | super_admin / admin |
-| status | smallint | 0=禁用, 1=正常, 2=锁定 |
-| login_attempts | int | 密码错误次数，默认0 |
-| locked_at | timestamp? | 锁定时间 |
-| created_at | timestamp | |
-| updated_at | timestamp | |
+| 字段           | 类型       | 说明                                 |
+| -------------- | ---------- | ------------------------------------ |
+| id             | bigint     | Snowflake ID                         |
+| tenant_id      | bigint     | FK → tenants.id                      |
+| name           | varchar    | 用户名（tenant_id + name 联合唯一）  |
+| phone          | varchar    | 手机号（tenant_id + phone 联合唯一） |
+| password_hash  | varchar    | bcrypt 哈希                          |
+| role           | varchar    | super_admin / admin                  |
+| status         | smallint   | 0=禁用, 1=正常, 2=锁定               |
+| login_attempts | int        | 密码错误次数，默认0                  |
+| locked_at      | timestamp? | 锁定时间                             |
+| created_at     | timestamp  |                                      |
+| updated_at     | timestamp  |                                      |
 
 ### refresh_tokens
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | bigint | Snowflake ID |
-| user_id | bigint | FK → users.id |
-| token_hash | varchar | refreshToken 的 hash |
-| expires_at | timestamp | 过期时间 |
-| revoked_at | timestamp? | 吊销时间 |
-| created_at | timestamp | |
-| updated_at | timestamp | |
+| 字段       | 类型       | 说明                 |
+| ---------- | ---------- | -------------------- |
+| id         | bigint     | Snowflake ID         |
+| user_id    | bigint     | FK → users.id        |
+| token_hash | varchar    | refreshToken 的 hash |
+| expires_at | timestamp  | 过期时间             |
+| revoked_at | timestamp? | 吊销时间             |
+| created_at | timestamp  |                      |
+| updated_at | timestamp  |                      |
 
 ### permissions（权限定义）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | bigint | Snowflake ID |
-| name | varchar | 权限标识（unique） |
-| created_at | timestamp | |
-| updated_at | timestamp | |
+| 字段       | 类型      | 说明               |
+| ---------- | --------- | ------------------ |
+| id         | bigint    | Snowflake ID       |
+| name       | varchar   | 权限标识（unique） |
+| created_at | timestamp |                    |
+| updated_at | timestamp |                    |
 
 预置权限：dashboard, buildings, rooms, tenants_mgmt, fees, users, roles
 
 ### role_permissions（角色-权限映射）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | bigint | Snowflake ID |
-| role | varchar | 角色名 |
-| permission_id | bigint | FK → permissions.id |
-| tenant_id | bigint | FK → tenants.id |
-| created_at | timestamp | |
-| updated_at | timestamp | |
+| 字段          | 类型      | 说明                |
+| ------------- | --------- | ------------------- |
+| id            | bigint    | Snowflake ID        |
+| role          | varchar   | 角色名              |
+| permission_id | bigint    | FK → permissions.id |
+| tenant_id     | bigint    | FK → tenants.id     |
+| created_at    | timestamp |                     |
+| updated_at    | timestamp |                     |
 
 唯一约束：role + permission_id + tenant_id
 
 ### audit_logs（审计日志）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | bigint | Snowflake ID |
-| tenant_id | bigint? | 归属租户 |
-| user_id | bigint? | 操作人 |
-| action | varchar | 操作类型 |
-| target_type | varchar | 目标实体类型 |
-| target_id | bigint? | 目标实体 ID |
-| metadata | jsonb | 额外信息（IP、修改前后值等） |
-| created_at | timestamp | 只有 created_at，无 updated_at |
+| 字段        | 类型      | 说明                           |
+| ----------- | --------- | ------------------------------ |
+| id          | bigint    | Snowflake ID                   |
+| tenant_id   | bigint?   | 归属租户                       |
+| user_id     | bigint?   | 操作人                         |
+| action      | varchar   | 操作类型                       |
+| target_type | varchar   | 目标实体类型                   |
+| target_id   | bigint?   | 目标实体 ID                    |
+| metadata    | jsonb     | 额外信息（IP、修改前后值等）   |
+| created_at  | timestamp | 只有 created_at，无 updated_at |
 
 审计操作范围：login, login_failed, logout, user_created, user_updated, user_deleted, permission_changed, building_deleted, room_deleted, tenant_created
 
