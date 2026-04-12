@@ -120,6 +120,7 @@ apps/admin/
 **验收标准：** `pnpm --filter @rent-app/schema build` 成功
 
 **Files:**
+
 - Create: `packages/schema/package.json`
 - Create: `packages/schema/tsconfig.json`
 - Create: `packages/schema/src/common.ts`
@@ -219,7 +220,10 @@ export const createUserSchema = z.object({
 
 export const updateUserSchema = z.object({
   name: z.string().min(1).max(50).optional(),
-  phone: z.string().regex(/^1[3-9]\d{9}$/).optional(),
+  phone: z
+    .string()
+    .regex(/^1[3-9]\d{9}$/)
+    .optional(),
   role: z.enum(['super_admin', 'admin']).optional(),
   status: z.number().int().min(0).max(2).optional(),
 });
@@ -234,7 +238,11 @@ export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 import { z } from 'zod';
 
 export const createTenantSchema = z.object({
-  code: z.string().min(1).max(50).regex(/^[a-zA-Z0-9_-]+$/),
+  code: z
+    .string()
+    .min(1)
+    .max(50)
+    .regex(/^[a-zA-Z0-9_-]+$/),
   name: z.string().min(1).max(100),
   adminName: z.string().min(1).max(50),
   adminPhone: z.string().regex(/^1[3-9]\d{9}$/),
@@ -309,6 +317,7 @@ git commit -m "feat: init packages/schema with shared Zod schemas"
 **验收标准：** `pnpm --filter server dev` 启动后 `GET /` 返回 200
 
 **Files:**
+
 - Create: `apps/server/package.json`
 - Create: `apps/server/tsconfig.json`
 - Create: `apps/server/src/main.ts`
@@ -468,6 +477,7 @@ git commit -m "feat: init apps/server NestJS project"
 **验收标准：** 调用 `generateId()` 返回 bigint 类型 ID
 
 **Files:**
+
 - Create: `apps/server/src/common/utils/snowflake.ts`
 
 - [ ] **Step 1: 创建 snowflake.ts**
@@ -522,6 +532,7 @@ git commit -m "feat: add Snowflake ID generator"
 **验收标准：** `pnpm --filter server db:generate` 生成迁移文件，`pnpm --filter server db:migrate` 执行成功
 
 **Files:**
+
 - Create: `apps/server/src/db/schema.ts`
 
 - [ ] **Step 1: 创建 schema.ts**
@@ -610,11 +621,7 @@ export const rolePermissions = pgTable(
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex('role_permissions_unique_idx').on(
-      table.role,
-      table.permissionId,
-      table.tenantId,
-    ),
+    uniqueIndex('role_permissions_unique_idx').on(table.role, table.permissionId, table.tenantId),
   ],
 );
 
@@ -733,6 +740,7 @@ git commit -m "feat: add Drizzle schema for all tables"
 **验收标准：** `pnpm --filter server db:seed` 执行后数据库有默认数据
 
 **Files:**
+
 - Create: `apps/server/src/db/seed.ts`
 
 - [ ] **Step 1: 创建 seed.ts**
@@ -825,6 +833,7 @@ git commit -m "feat: add database seed script"
 **验收标准：** `POST /auth/login` 正确返回 token 和权限列表，`POST /auth/refresh` 轮换 token，`POST /auth/logout` 吊销 token
 
 **Files:**
+
 - Create: `apps/server/src/modules/auth/auth.module.ts`
 - Create: `apps/server/src/modules/auth/auth.controller.ts`
 - Create: `apps/server/src/modules/auth/auth.service.ts`
@@ -833,11 +842,7 @@ git commit -m "feat: add database seed script"
 - [ ] **Step 1: 创建 auth.service.ts**
 
 ```typescript
-import {
-  Injectable,
-  UnauthorizedException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { eq, and, or, isNull } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
@@ -867,10 +872,7 @@ export class AuthService {
       .where(
         and(
           eq(schema.users.tenantId, tenant.id),
-          or(
-            eq(schema.users.name, input.account),
-            eq(schema.users.phone, input.account),
-          ),
+          or(eq(schema.users.name, input.account), eq(schema.users.phone, input.account)),
         ),
       );
     if (!user) throw new UnauthorizedException('用户不存在');
@@ -878,10 +880,7 @@ export class AuthService {
     if (user.status === 0) throw new ForbiddenException('账号已禁用');
 
     if (user.status === 2) {
-      if (
-        user.lockedAt &&
-        Date.now() - user.lockedAt.getTime() > LOCK_DURATION_MS
-      ) {
+      if (user.lockedAt && Date.now() - user.lockedAt.getTime() > LOCK_DURATION_MS) {
         await db
           .update(schema.users)
           .set({ status: 1, loginAttempts: 0, lockedAt: null, updatedAt: new Date() })
@@ -893,9 +892,7 @@ export class AuthService {
           ? LOCK_DURATION_MS - (Date.now() - user.lockedAt.getTime())
           : 0;
         const remainingMin = Math.ceil(remainingMs / 60000);
-        throw new ForbiddenException(
-          `账号已锁定，请${remainingMin}分钟后重试`,
-        );
+        throw new ForbiddenException(`账号已锁定，请${remainingMin}分钟后重试`);
       }
     }
 
@@ -931,9 +928,7 @@ export class AuthService {
         remaining,
       });
 
-      throw new UnauthorizedException(
-        `密码错误，还剩${remaining}次机会`,
-      );
+      throw new UnauthorizedException(`密码错误，还剩${remaining}次机会`);
     }
 
     await db
@@ -948,10 +943,7 @@ export class AuthService {
     };
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
     const refreshToken = crypto.randomBytes(64).toString('hex');
-    const tokenHash = crypto
-      .createHash('sha256')
-      .update(refreshToken)
-      .digest('hex');
+    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
     await db.insert(schema.refreshTokens).values({
       id: generateId(),
@@ -963,10 +955,7 @@ export class AuthService {
     const userPermissions = await db
       .select({ name: schema.permissions.name })
       .from(schema.rolePermissions)
-      .innerJoin(
-        schema.permissions,
-        eq(schema.rolePermissions.permissionId, schema.permissions.id),
-      )
+      .innerJoin(schema.permissions, eq(schema.rolePermissions.permissionId, schema.permissions.id))
       .where(
         and(
           eq(schema.rolePermissions.role, user.role),
@@ -992,19 +981,13 @@ export class AuthService {
   }
 
   async refresh(input: RefreshInput) {
-    const tokenHash = crypto
-      .createHash('sha256')
-      .update(input.refreshToken)
-      .digest('hex');
+    const tokenHash = crypto.createHash('sha256').update(input.refreshToken).digest('hex');
 
     const [token] = await db
       .select()
       .from(schema.refreshTokens)
       .where(
-        and(
-          eq(schema.refreshTokens.tokenHash, tokenHash),
-          isNull(schema.refreshTokens.revokedAt),
-        ),
+        and(eq(schema.refreshTokens.tokenHash, tokenHash), isNull(schema.refreshTokens.revokedAt)),
       );
 
     if (!token || token.expiresAt < new Date()) {
@@ -1016,10 +999,7 @@ export class AuthService {
       .set({ revokedAt: new Date(), updatedAt: new Date() })
       .where(eq(schema.refreshTokens.id, token.id));
 
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, token.userId));
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, token.userId));
     if (!user) throw new UnauthorizedException('用户不存在');
 
     const payload = {
@@ -1029,10 +1009,7 @@ export class AuthService {
     };
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
     const newRefreshToken = crypto.randomBytes(64).toString('hex');
-    const newTokenHash = crypto
-      .createHash('sha256')
-      .update(newRefreshToken)
-      .digest('hex');
+    const newTokenHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
 
     await db.insert(schema.refreshTokens).values({
       id: generateId(),
@@ -1045,25 +1022,16 @@ export class AuthService {
   }
 
   async logout(userId: bigint, refreshToken: string) {
-    const tokenHash = crypto
-      .createHash('sha256')
-      .update(refreshToken)
-      .digest('hex');
+    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
     await db
       .update(schema.refreshTokens)
       .set({ revokedAt: new Date(), updatedAt: new Date() })
       .where(
-        and(
-          eq(schema.refreshTokens.tokenHash, tokenHash),
-          eq(schema.refreshTokens.userId, userId),
-        ),
+        and(eq(schema.refreshTokens.tokenHash, tokenHash), eq(schema.refreshTokens.userId, userId)),
       );
 
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, userId));
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId));
 
     if (user) {
       await this.logAudit(user.tenantId, userId, 'logout', 'user', userId, null);
@@ -1186,6 +1154,7 @@ git commit -m "feat: add auth module with login/refresh/logout"
 **验收标准：** 未登录访问非 Public 接口返回 401，Public 接口正常访问
 
 **Files:**
+
 - Create: `apps/server/src/common/guards/jwt-auth.guard.ts`
 - Create: `apps/server/src/common/decorators/public.decorator.ts`
 - Modify: `apps/server/src/app.module.ts`
@@ -1202,12 +1171,7 @@ export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 - [ ] **Step 2: 创建 jwt-auth.guard.ts**
 
 ```typescript
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
@@ -1278,6 +1242,7 @@ git commit -m "feat: add JWT auth guard with @Public decorator"
 **验收标准：** 无权限用户访问受保护接口返回 403
 
 **Files:**
+
 - Create: `apps/server/src/common/guards/permission.guard.ts`
 - Create: `apps/server/src/common/decorators/require-permission.decorator.ts`
 - Modify: `apps/server/src/app.module.ts`
@@ -1296,12 +1261,7 @@ export const RequirePermission = (permission: PermissionName) =>
 - [ ] **Step 2: 创建 permission.guard.ts**
 
 ```typescript
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  ForbiddenException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { eq, and } from 'drizzle-orm';
 import { PERMISSION_KEY } from '../decorators/require-permission.decorator';
@@ -1313,10 +1273,10 @@ export class PermissionGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredPermission = this.reflector.getAllAndOverride<string>(
-      PERMISSION_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredPermission = this.reflector.getAllAndOverride<string>(PERMISSION_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     if (!requiredPermission) return true;
 
     const request = context.switchToHttp().getRequest();
@@ -1378,6 +1338,7 @@ git commit -m "feat: add permission guard with @RequirePermission decorator"
 **验收标准：** 登录后的请求 `req.tenantId` 可用
 
 **Files:**
+
 - Create: `apps/server/src/common/middleware/tenant-context.middleware.ts`
 - Modify: `apps/server/src/app.module.ts`
 
@@ -1430,6 +1391,7 @@ git commit -m "feat: add tenant context middleware"
 **验收标准：** `GET /audit?page=1&pageSize=20` 返回分页审计日志
 
 **Files:**
+
 - Create: `apps/server/src/modules/audit/audit.module.ts`
 - Create: `apps/server/src/modules/audit/audit.service.ts`
 - Create: `apps/server/src/modules/audit/audit.controller.ts`
@@ -1540,6 +1502,7 @@ git commit -m "feat: add audit module"
 **验收标准：** super_admin 可创建用户、修改状态、解锁、删除
 
 **Files:**
+
 - Create: `apps/server/src/modules/users/users.module.ts`
 - Create: `apps/server/src/modules/users/users.service.ts`
 - Create: `apps/server/src/modules/users/users.controller.ts`
@@ -1547,11 +1510,7 @@ git commit -m "feat: add audit module"
 - [ ] **Step 1: 创建 users.service.ts**
 
 ```typescript
-import {
-  Injectable,
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { eq, and, sql, desc } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import { db } from '../../db';
@@ -1568,23 +1527,13 @@ export class UsersService {
     const existing = await db
       .select()
       .from(schema.users)
-      .where(
-        and(
-          eq(schema.users.tenantId, tenantId),
-          eq(schema.users.name, input.name),
-        ),
-      );
+      .where(and(eq(schema.users.tenantId, tenantId), eq(schema.users.name, input.name)));
     if (existing.length > 0) throw new ConflictException('用户名已存在');
 
     const existingPhone = await db
       .select()
       .from(schema.users)
-      .where(
-        and(
-          eq(schema.users.tenantId, tenantId),
-          eq(schema.users.phone, input.phone),
-        ),
-      );
+      .where(and(eq(schema.users.tenantId, tenantId), eq(schema.users.phone, input.phone)));
     if (existingPhone.length > 0) throw new ConflictException('手机号已存在');
 
     const passwordHash = await bcrypt.hash(input.password, 10);
@@ -1644,12 +1593,7 @@ export class UsersService {
     };
   }
 
-  async update(
-    tenantId: bigint,
-    userId: bigint,
-    input: UpdateUserInput,
-    operatorId: bigint,
-  ) {
+  async update(tenantId: bigint, userId: bigint, input: UpdateUserInput, operatorId: bigint) {
     const [user] = await db
       .select()
       .from(schema.users)
@@ -1708,24 +1652,10 @@ export class UsersService {
 - [ ] **Step 2: 创建 users.controller.ts**
 
 ```typescript
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  Query,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, Req } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
-import {
-  createUserSchema,
-  updateUserSchema,
-  paginationSchema,
-} from '@rent-app/schema';
+import { createUserSchema, updateUserSchema, paginationSchema } from '@rent-app/schema';
 
 @Controller('users')
 @RequirePermission('users')
@@ -1735,11 +1665,7 @@ export class UsersController {
   @Post()
   async create(@Req() req: any, @Body() body: unknown) {
     const input = createUserSchema.parse(body);
-    return this.usersService.create(
-      BigInt(req.user.tenantId),
-      input,
-      BigInt(req.user.sub),
-    );
+    return this.usersService.create(BigInt(req.user.tenantId), input, BigInt(req.user.sub));
   }
 
   @Get()
@@ -1761,11 +1687,7 @@ export class UsersController {
 
   @Delete(':id')
   async remove(@Req() req: any, @Param('id') id: string) {
-    return this.usersService.remove(
-      BigInt(req.user.tenantId),
-      BigInt(id),
-      BigInt(req.user.sub),
-    );
+    return this.usersService.remove(BigInt(req.user.tenantId), BigInt(id), BigInt(req.user.sub));
   }
 }
 ```
@@ -1801,6 +1723,7 @@ git commit -m "feat: add users module with CRUD"
 **验收标准：** super_admin 可查看和修改 admin 角色的页面权限列表
 
 **Files:**
+
 - Create: `apps/server/src/modules/permissions/permissions.module.ts`
 - Create: `apps/server/src/modules/permissions/permissions.service.ts`
 - Create: `apps/server/src/modules/permissions/permissions.controller.ts`
@@ -1828,15 +1751,9 @@ export class PermissionsService {
     const result = await db
       .select({ name: schema.permissions.name })
       .from(schema.rolePermissions)
-      .innerJoin(
-        schema.permissions,
-        eq(schema.rolePermissions.permissionId, schema.permissions.id),
-      )
+      .innerJoin(schema.permissions, eq(schema.rolePermissions.permissionId, schema.permissions.id))
       .where(
-        and(
-          eq(schema.rolePermissions.role, role),
-          eq(schema.rolePermissions.tenantId, tenantId),
-        ),
+        and(eq(schema.rolePermissions.role, role), eq(schema.rolePermissions.tenantId, tenantId)),
       );
     return result.map((r) => r.name);
   }
@@ -1903,10 +1820,7 @@ export class PermissionsController {
 
   @Get('role/:role')
   async getRolePermissions(@Req() req: any, @Param('role') role: string) {
-    return this.permissionsService.getRolePermissions(
-      BigInt(req.user.tenantId),
-      role,
-    );
+    return this.permissionsService.getRolePermissions(BigInt(req.user.tenantId), role);
   }
 
   @Put('role')
@@ -1952,6 +1866,7 @@ git commit -m "feat: add permissions module"
 **验收标准：** super_admin 可创建新租户，新租户自带管理员账号
 
 **Files:**
+
 - Create: `apps/server/src/modules/tenants-mgmt/tenants-mgmt.module.ts`
 - Create: `apps/server/src/modules/tenants-mgmt/tenants-mgmt.service.ts`
 - Create: `apps/server/src/modules/tenants-mgmt/tenants-mgmt.controller.ts`
@@ -1959,11 +1874,7 @@ git commit -m "feat: add permissions module"
 - [ ] **Step 1: 创建 tenants-mgmt.service.ts**
 
 ```typescript
-import {
-  Injectable,
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { eq, sql, desc } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import { db } from '../../db';
@@ -2046,10 +1957,7 @@ export class TenantsMgmtService {
   }
 
   async update(tenantId: bigint, input: UpdateTenantInput) {
-    const [tenant] = await db
-      .select()
-      .from(schema.tenants)
-      .where(eq(schema.tenants.id, tenantId));
+    const [tenant] = await db.select().from(schema.tenants).where(eq(schema.tenants.id, tenantId));
     if (!tenant) throw new NotFoundException('租户不存在');
 
     await db
@@ -2065,23 +1973,10 @@ export class TenantsMgmtService {
 - [ ] **Step 2: 创建 tenants-mgmt.controller.ts**
 
 ```typescript
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Body,
-  Param,
-  Query,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, Req } from '@nestjs/common';
 import { TenantsMgmtService } from './tenants-mgmt.service';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
-import {
-  createTenantSchema,
-  updateTenantSchema,
-  paginationSchema,
-} from '@rent-app/schema';
+import { createTenantSchema, updateTenantSchema, paginationSchema } from '@rent-app/schema';
 
 @Controller('tenants')
 @RequirePermission('tenants_mgmt')
@@ -2139,6 +2034,7 @@ git commit -m "feat: add tenants-mgmt module"
 **验收标准：** 请求各业务接口返回空数组或占位响应
 
 **Files:**
+
 - Create: `apps/server/src/modules/buildings/{buildings.module.ts,buildings.controller.ts,buildings.service.ts}`
 - Create: `apps/server/src/modules/rooms/{rooms.module.ts,rooms.controller.ts,rooms.service.ts}`
 - Create: `apps/server/src/modules/fees/{fees.module.ts,fees.controller.ts,fees.service.ts}`
@@ -2146,6 +2042,7 @@ git commit -m "feat: add tenants-mgmt module"
 - [ ] **Step 1: 创建 buildings 模块骨架**
 
 `buildings.controller.ts`:
+
 ```typescript
 import { Controller, Get } from '@nestjs/common';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
@@ -2161,6 +2058,7 @@ export class BuildingsController {
 ```
 
 `buildings.module.ts`:
+
 ```typescript
 import { Module } from '@nestjs/common';
 import { BuildingsController } from './buildings.controller';
@@ -2195,6 +2093,7 @@ git commit -m "feat: add skeleton modules for buildings/rooms/fees"
 **验收标准：** `pnpm --filter admin dev` 启动后浏览器打开显示页面
 
 **Files:**
+
 - Create: `apps/admin/package.json`
 - Create: `apps/admin/tsconfig.json`
 - Create: `apps/admin/vite.config.ts`
@@ -2282,6 +2181,7 @@ export default defineConfig({
 - [ ] **Step 4: 创建 tailwind.config.ts 和 postcss.config.js**
 
 `tailwind.config.ts`:
+
 ```typescript
 import { heroui } from '@heroui/react';
 
@@ -2298,6 +2198,7 @@ export default {
 ```
 
 `postcss.config.js`:
+
 ```javascript
 export default {
   plugins: {
@@ -2387,6 +2288,7 @@ git commit -m "feat: init apps/admin with React + Vite + TanStack Router + HeroU
 **验收标准：** 请求自动带 Authorization header，401 时自动刷新并重试
 
 **Files:**
+
 - Create: `apps/admin/src/api/request.ts`
 
 - [ ] **Step 1: 创建 request.ts**
@@ -2472,6 +2374,7 @@ git commit -m "feat: add axios request wrapper with token refresh"
 **验收标准：** 登录后数据持久化到 localStorage，刷新页面恢复状态
 
 **Files:**
+
 - Create: `apps/admin/src/stores/auth.ts`
 - Create: `apps/admin/src/api/auth.ts`
 
@@ -2520,8 +2423,7 @@ export const useAuthStore = create<AuthState>()(
           user: data.user,
           permissions: data.permissions,
         }),
-      setTokens: (accessToken, refreshToken) =>
-        set({ accessToken, refreshToken }),
+      setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       logout: () =>
         set({
           accessToken: null,
@@ -2543,8 +2445,7 @@ import request from './request';
 import type { LoginInput } from '@rent-app/schema';
 
 export const authApi = {
-  login: (data: LoginInput) =>
-    request.post('/auth/login', data).then((r) => r.data),
+  login: (data: LoginInput) => request.post('/auth/login', data).then((r) => r.data),
 
   refresh: (refreshToken: string) =>
     request.post('/auth/refresh', { refreshToken }).then((r) => r.data),
@@ -2571,6 +2472,7 @@ git commit -m "feat: add auth store and auth API"
 **验收标准：** 输入正确凭据登录成功，错误密码显示剩余次数，锁定显示剩余时间
 
 **Files:**
+
 - Create: `apps/admin/src/routes/login.tsx`
 
 - [ ] **Step 1: 创建 login.tsx**
@@ -2658,15 +2560,16 @@ git commit -m "feat: add login page"
 
 ### Task 19: 布局（侧边栏 + 顶栏 + 权限路由守卫）
 
-**交付物：** _auth 布局（需登录才能访问），侧边栏根据权限动态渲染菜单
+**交付物：** \_auth 布局（需登录才能访问），侧边栏根据权限动态渲染菜单
 **验收标准：** 未登录自动跳转 login，侧边栏只显示有权限的菜单项
 
 **Files:**
+
 - Create: `apps/admin/src/routes/__root.tsx`
 - Create: `apps/admin/src/routes/_auth.tsx`
 - Create: `apps/admin/src/components/sidebar.tsx`
 
-- [ ] **Step 1: 创建 __root.tsx**
+- [ ] **Step 1: 创建 \_\_root.tsx**
 
 ```tsx
 import { createRootRoute, Outlet } from '@tanstack/react-router';
@@ -2698,9 +2601,7 @@ export function Sidebar() {
   const user = useAuthStore((s) => s.user);
   const location = useLocation();
 
-  const visibleItems = menuItems.filter((item) =>
-    hasPermission(item.permission),
-  );
+  const visibleItems = menuItems.filter((item) => hasPermission(item.permission));
 
   return (
     <aside className="flex h-screen w-60 flex-col border-r bg-white">
@@ -2731,7 +2632,7 @@ export function Sidebar() {
 }
 ```
 
-- [ ] **Step 3: 创建 _auth.tsx**
+- [ ] **Step 3: 创建 \_auth.tsx**
 
 ```tsx
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
@@ -2810,6 +2711,7 @@ git commit -m "feat: add layout with sidebar and auth guard"
 **验收标准：** 可创建用户、禁用/启用/解锁用户、删除用户
 
 **Files:**
+
 - Create: `apps/admin/src/routes/_auth/users.tsx`
 - Create: `apps/admin/src/api/users.ts`
 
@@ -2823,14 +2725,12 @@ export const usersApi = {
   list: (page = 1, pageSize = 20) =>
     request.get('/users', { params: { page, pageSize } }).then((r) => r.data),
 
-  create: (data: CreateUserInput) =>
-    request.post('/users', data).then((r) => r.data),
+  create: (data: CreateUserInput) => request.post('/users', data).then((r) => r.data),
 
   update: (id: string, data: UpdateUserInput) =>
     request.patch(`/users/${id}`, data).then((r) => r.data),
 
-  remove: (id: string) =>
-    request.delete(`/users/${id}`).then((r) => r.data),
+  remove: (id: string) => request.delete(`/users/${id}`).then((r) => r.data),
 };
 ```
 
@@ -2915,7 +2815,9 @@ function UsersPage() {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold">用户管理</h1>
-        <Button color="primary" onPress={onOpen}>新建用户</Button>
+        <Button color="primary" onPress={onOpen}>
+          新建用户
+        </Button>
       </div>
 
       <Table aria-label="用户列表">
@@ -2940,21 +2842,41 @@ function UsersPage() {
               <TableCell>
                 <div className="flex gap-2">
                   {user.status === 1 && (
-                    <Button size="sm" variant="flat" color="warning" onPress={() => handleStatusChange(user.id, 0)}>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      color="warning"
+                      onPress={() => handleStatusChange(user.id, 0)}
+                    >
                       禁用
                     </Button>
                   )}
                   {user.status === 0 && (
-                    <Button size="sm" variant="flat" color="success" onPress={() => handleStatusChange(user.id, 1)}>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      color="success"
+                      onPress={() => handleStatusChange(user.id, 1)}
+                    >
                       启用
                     </Button>
                   )}
                   {user.status === 2 && (
-                    <Button size="sm" variant="flat" color="success" onPress={() => handleStatusChange(user.id, 1)}>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      color="success"
+                      onPress={() => handleStatusChange(user.id, 1)}
+                    >
                       解锁
                     </Button>
                   )}
-                  <Button size="sm" variant="flat" color="danger" onPress={() => handleDelete(user.id)}>
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    color="danger"
+                    onPress={() => handleDelete(user.id)}
+                  >
                     删除
                   </Button>
                 </div>
@@ -2972,17 +2894,41 @@ function UsersPage() {
         <ModalContent>
           <ModalHeader>新建用户</ModalHeader>
           <ModalBody className="gap-4">
-            <Input label="用户名" value={form.name} onValueChange={(v) => setForm({ ...form, name: v })} isRequired />
-            <Input label="手机号" value={form.phone} onValueChange={(v) => setForm({ ...form, phone: v })} isRequired />
-            <Input label="密码" type="password" value={form.password} onValueChange={(v) => setForm({ ...form, password: v })} isRequired />
-            <Select label="角色" selectedKeys={[form.role]} onSelectionChange={(keys) => setForm({ ...form, role: [...keys][0] as any })}>
+            <Input
+              label="用户名"
+              value={form.name}
+              onValueChange={(v) => setForm({ ...form, name: v })}
+              isRequired
+            />
+            <Input
+              label="手机号"
+              value={form.phone}
+              onValueChange={(v) => setForm({ ...form, phone: v })}
+              isRequired
+            />
+            <Input
+              label="密码"
+              type="password"
+              value={form.password}
+              onValueChange={(v) => setForm({ ...form, password: v })}
+              isRequired
+            />
+            <Select
+              label="角色"
+              selectedKeys={[form.role]}
+              onSelectionChange={(keys) => setForm({ ...form, role: [...keys][0] as any })}
+            >
               <SelectItem key="admin">admin</SelectItem>
               <SelectItem key="super_admin">super_admin</SelectItem>
             </Select>
           </ModalBody>
           <ModalFooter>
-            <Button variant="flat" onPress={onClose}>取消</Button>
-            <Button color="primary" onPress={handleCreate}>创建</Button>
+            <Button variant="flat" onPress={onClose}>
+              取消
+            </Button>
+            <Button color="primary" onPress={handleCreate}>
+              创建
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
@@ -3006,6 +2952,7 @@ git commit -m "feat: add users management page"
 **验收标准：** 可勾选/取消权限并保存
 
 **Files:**
+
 - Create: `apps/admin/src/routes/_auth/permissions.tsx`
 - Create: `apps/admin/src/api/permissions.ts`
 
@@ -3015,8 +2962,7 @@ git commit -m "feat: add users management page"
 import request from './request';
 
 export const permissionsApi = {
-  getAll: () =>
-    request.get('/permissions').then((r) => r.data),
+  getAll: () => request.get('/permissions').then((r) => r.data),
 
   getRolePermissions: (role: string) =>
     request.get(`/permissions/role/${role}`).then((r) => r.data),
@@ -3059,9 +3005,7 @@ function PermissionsPage() {
 
   const togglePermission = (name: string) => {
     setAdminPermissions((prev) =>
-      prev.includes(name)
-        ? prev.filter((p) => p !== name)
-        : [...prev, name],
+      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name],
     );
   };
 
@@ -3117,6 +3061,7 @@ git commit -m "feat: add permissions management page"
 **验收标准：** 显示操作记录，支持翻页
 
 **Files:**
+
 - Create: `apps/admin/src/routes/_auth/audit-logs.tsx`
 - Create: `apps/admin/src/api/audit.ts`
 
@@ -3182,9 +3127,7 @@ function AuditLogsPage() {
               <TableCell>{log.action}</TableCell>
               <TableCell>{log.targetType}</TableCell>
               <TableCell>{log.targetId?.toString() || '-'}</TableCell>
-              <TableCell>
-                {new Date(log.createdAt).toLocaleString('zh-CN')}
-              </TableCell>
+              <TableCell>{new Date(log.createdAt).toLocaleString('zh-CN')}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -3212,6 +3155,7 @@ git commit -m "feat: add audit logs page"
 **验收标准：** 点击侧边栏菜单能进入对应页面，显示"功能开发中"
 
 **Files:**
+
 - Create: `apps/admin/src/routes/_auth/buildings.tsx`
 - Create: `apps/admin/src/routes/_auth/rooms.tsx`
 - Create: `apps/admin/src/routes/_auth/tenants.tsx`
@@ -3226,9 +3170,7 @@ import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/_auth/buildings')({
   component: () => (
-    <div className="flex h-64 items-center justify-center text-gray-400">
-      楼栋管理 - 功能开发中
-    </div>
+    <div className="flex h-64 items-center justify-center text-gray-400">楼栋管理 - 功能开发中</div>
   ),
 });
 ```
