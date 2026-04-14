@@ -1164,18 +1164,41 @@ git commit -m "feat: add auth module with login/refresh/logout"
 
 ---
 
-### Task 7: JWT Guard + Public 装饰器
+### Task 7: JWT Guard 重写（Passport Strategy 模式）
 
-**交付物：** 全局 JWT 鉴权 Guard，支持 @Public() 跳过
-**验收标准：** 未登录访问非 Public 接口返回 401，Public 接口正常访问
+**交付物：** 基于 `passport-jwt` 的 `JwtStrategy` + 支持 `@Public()` 的全局 `JwtAuthGuard`
+**验收标准：** 非 Public 接口必须携带有效 JWT；session 被吊销或用户被禁用/锁定时返回 401
 
 **Files:**
 
-- Create: `apps/server/src/common/guards/jwt-auth.guard.ts`
 - Create: `apps/server/src/common/decorators/public.decorator.ts`
+- Create: `apps/server/src/common/guards/jwt-auth.guard.ts`
+- Create: `apps/server/src/modules/auth/strategies/jwt.strategy.ts`
+- Modify: `apps/server/src/db/schema.ts`
+- Modify: `apps/server/src/modules/auth/auth.service.ts`
+- Modify: `apps/server/src/modules/auth/auth.module.ts`
 - Modify: `apps/server/src/app.module.ts`
+- Test: `apps/server/test/auth.e2e-spec.ts`
 
-- [ ] **Step 1: 创建 public.decorator.ts**
+- [ ] **Step 1: 写失败用例（session 吊销后访问受保护接口返回 401）**
+
+```typescript
+it('GET /users should return 401 when session revoked', async () => {
+  const { accessToken, sessionId } = await loginAndGetSession();
+  await revokeSession(sessionId);
+  const res = await request(app.getHttpServer())
+    .get('/users')
+    .set('Authorization', `Bearer ${accessToken}`);
+  expect(res.status).toBe(401);
+});
+```
+
+- [ ] **Step 2: 运行测试确认失败**
+
+Run: `pnpm --filter server test:e2e -- auth.e2e-spec.ts -t "session revoked"`
+Expected: FAIL（当前 guard 仅验签，不校验 session）
+
+- [ ] **Step 3: 创建 public.decorator.ts**
 
 ```typescript
 import { SetMetadata } from '@nestjs/common';
@@ -1184,46 +1207,152 @@ export const IS_PUBLIC_KEY = 'isPublic';
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 ```
 
-- [ ] **Step 2: 创建 jwt-auth.guard.ts**
+- [ ] **Step 4: 重写 jwt-auth.guard.ts（改为 AuthGuard('jwt') + Public 跳过）**
 
 ```typescript
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
+import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 @Injectable()
-export class JwtAuthGuard implements CanActivate {
-  constructor(
-    private reflector: Reflector,
-    private jwtService: JwtService,
-  ) {}
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  constructor(private readonly reflector: Reflector) {
+    super();
+  }
 
-  canActivate(context: ExecutionContext): boolean {
+  canActivate(context: ExecutionContext) {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
     if (isPublic) return true;
-
-    const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers['authorization'];
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedException('缺少 Authorization header');
-    }
-
-    const token = authHeader.slice(7);
-    try {
-      request.user = this.jwtService.verify(token);
-      return true;
-    } catch {
-      throw new UnauthorizedException('token 无效或已过期');
-    }
+    return super.canActivate(context);
   }
 }
 ```
 
-- [ ] **Step 3: 在 app.module.ts 注册全局 Guard**
+- [ ] **Step 5: 修改 db/schema.ts 增加 user_sessions 表**
+
+```typescript
+export const userSessions = pgTable(
+  'user_sessions',
+  {
+    id: bigint('id', { mode: 'bigint' }).primaryKey(),
+    userId: bigint('user_id', { mode: 'bigint' })
+      .notNull()
+      .references(() => users.id),
+    tenantId: bigint('tenant_id', { mode: 'bigint' })
+      .notNull()
+      .references(() => tenants.id),
+    revokedAt: timestamp('revoked_at'),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('user_sessions_user_id_idx').on(table.userId)],
+);
+```
+
+- [ ] **Step 6: 修改 auth.service.ts 在登录时写入 sessionId 并放入 JWT payload**
+
+```typescript
+const sessionId = generateId();
+await db.insert(schema.userSessions).values({
+  id: sessionId,
+  userId: user.id,
+  tenantId: user.tenantId,
+  expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+});
+
+const payload = {
+  sub: user.id.toString(),
+  tenantId: user.tenantId.toString(),
+  role: user.role,
+  sessionId: sessionId.toString(),
+};
+const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+```
+
+- [ ] **Step 7: 新增 jwt.strategy.ts（参考 Autix 的 validate 思路）**
+
+```typescript
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { eq, and, isNull } from 'drizzle-orm';
+import { db } from '../../../db';
+import * as schema from '../../../db/schema';
+
+type JwtPayload = {
+  sub: string;
+  tenantId: string;
+  role: string;
+  sessionId: string;
+};
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor() {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: process.env.JWT_SECRET!,
+    });
+  }
+
+  async validate(payload: JwtPayload) {
+    const [session] = await db
+      .select()
+      .from(schema.userSessions)
+      .where(
+        and(
+          eq(schema.userSessions.id, BigInt(payload.sessionId)),
+          isNull(schema.userSessions.revokedAt),
+        ),
+      );
+    if (!session) throw new UnauthorizedException('Session revoked');
+
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, BigInt(payload.sub)));
+    if (!user || user.status === 0 || user.status === 2) {
+      throw new UnauthorizedException('User disabled');
+    }
+
+    return {
+      sub: user.id.toString(),
+      tenantId: user.tenantId.toString(),
+      role: user.role,
+      sessionId: session.id.toString(),
+    };
+  }
+}
+```
+
+- [ ] **Step 8: 修改 auth.module.ts 注册 Passport + Strategy**
+
+```typescript
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { JwtStrategy } from './strategies/jwt.strategy';
+
+@Module({
+  imports: [
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'dev-secret',
+      signOptions: { expiresIn: '15m' },
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy],
+  exports: [JwtModule, PassportModule],
+})
+export class AuthModule {}
+```
+
+- [ ] **Step 9: 在 app.module.ts 保持全局 Guard 注册**
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -1233,21 +1362,21 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 
 @Module({
   imports: [AuthModule],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
-  ],
+  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
 export class AppModule {}
 ```
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 10: 运行测试确认通过**
+
+Run: `pnpm --filter server test:e2e -- auth.e2e-spec.ts -t "session revoked"`
+Expected: PASS
+
+- [ ] **Step 11: Commit**
 
 ```bash
-git add apps/server/src/common/guards apps/server/src/common/decorators apps/server/src/app.module.ts
-git commit -m "feat: add JWT auth guard with @Public decorator"
+git add apps/server/src/common/decorators/public.decorator.ts apps/server/src/common/guards/jwt-auth.guard.ts apps/server/src/modules/auth/strategies/jwt.strategy.ts apps/server/src/modules/auth/auth.service.ts apps/server/src/modules/auth/auth.module.ts apps/server/src/db/schema.ts apps/server/src/app.module.ts apps/server/test/auth.e2e-spec.ts
+git commit -m "refactor: rewrite jwt guard with passport strategy and session validation"
 ```
 
 ---
