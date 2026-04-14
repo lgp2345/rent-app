@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "nestjs-patterns": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "computedHash": "0ff35d7a72bb462f51629b38dcb525ab0368ff755cbd1cf121c144e7d05f12a1"
+    }
+  }
+}
