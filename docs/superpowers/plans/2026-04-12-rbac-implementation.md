@@ -4,9 +4,9 @@
 
 **Goal:** 为房屋租赁系统构建后台管理 RBAC 权限模块，包含后端 API、前端管理界面和共享 Schema。
 
-**Architecture:** Monorepo 三层架构：packages/schema 提供前后端共享 Zod 校验，apps/server 提供 NestJS REST API（JWT 认证 + 页面级权限），apps/admin 提供 React 管理界面。多租户通过 tenant_id 字段隔离。
+**Architecture:** Monorepo 三层架构：packages/schema 提供前后端共享 Zod 校验，apps/server 提供基于 NestJS + Fastify 的 REST API（JWT 认证 + 页面级权限），并通过 nestjs-zod 在 Controller 层统一 DTO 校验，apps/admin 提供 React 管理界面。多租户通过 tenant_id 字段隔离。
 
-**Tech Stack:** NestJS, Drizzle ORM, PostgreSQL, Zod, React, TanStack Router, Zustand, HeroUI, Tailwind CSS, Axios
+**Tech Stack:** NestJS, Fastify, nestjs-zod, Drizzle ORM, PostgreSQL, Zod, React, TanStack Router, Zustand, HeroUI, Tailwind CSS, Axios
 
 **Design Spec:** `docs/superpowers/specs/2026-04-12-rbac-design.md`
 
@@ -341,13 +341,16 @@ git commit -m "feat: init packages/schema with shared Zod schemas"
     "db:seed": "tsx src/db/seed.ts"
   },
   "dependencies": {
+    "@fastify/cors": "^10.0.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/jwt": "^11.0.0",
-    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/platform-fastify": "^11.0.0",
     "@rent-app/schema": "workspace:*",
     "bcrypt": "^6.0.0",
     "drizzle-orm": "^0.44.0",
+    "fastify": "^5.0.0",
+    "nestjs-zod": "^4.0.0",
     "postgres": "^3.4.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",
@@ -436,13 +439,17 @@ export class AppModule {}
 
 ```typescript
 import 'reflect-metadata';
+import cors from '@fastify/cors';
 import { NestFactory } from '@nestjs/core';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.enableCors();
-  await app.listen(3000);
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+  await app.register(cors, { origin: true });
+  app.useGlobalPipes(new ZodValidationPipe());
+  await app.listen(3000, '0.0.0.0');
 }
 bootstrap();
 ```
@@ -834,6 +841,7 @@ git commit -m "feat: add database seed script"
 
 **Files:**
 
+- Create: `apps/server/src/modules/auth/auth.dto.ts`
 - Create: `apps/server/src/modules/auth/auth.module.ts`
 - Create: `apps/server/src/modules/auth/auth.controller.ts`
 - Create: `apps/server/src/modules/auth/auth.service.ts`
@@ -1059,14 +1067,24 @@ export class AuthService {
 }
 ```
 
-- [ ] **Step 2: 创建 auth.controller.ts**
+- [ ] **Step 2: 创建 auth.dto.ts**
+
+```typescript
+import { createZodDto } from 'nestjs-zod';
+import { loginSchema, refreshSchema } from '@rent-app/schema';
+
+export class LoginDto extends createZodDto(loginSchema) {}
+export class RefreshDto extends createZodDto(refreshSchema) {}
+```
+
+- [ ] **Step 3: 创建 auth.controller.ts**
 
 ```typescript
 import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { loginSchema, refreshSchema } from '@rent-app/schema';
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { LoginDto, RefreshDto } from './auth.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -1074,16 +1092,14 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  async login(@Body() body: unknown) {
-    const input = loginSchema.parse(body);
-    return this.authService.login(input);
+  async login(@Body() body: LoginDto) {
+    return this.authService.login(body);
   }
 
   @Public()
   @Post('refresh')
-  async refresh(@Body() body: unknown) {
-    const input = refreshSchema.parse(body);
-    return this.authService.refresh(input);
+  async refresh(@Body() body: RefreshDto) {
+    return this.authService.refresh(body);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -1095,7 +1111,7 @@ export class AuthController {
 }
 ```
 
-- [ ] **Step 3: 创建 auth.module.ts**
+- [ ] **Step 4: 创建 auth.module.ts**
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -1117,7 +1133,7 @@ import { AuthService } from './auth.service';
 export class AuthModule {}
 ```
 
-- [ ] **Step 4: 更新 app.module.ts 注册 AuthModule**
+- [ ] **Step 5: 更新 app.module.ts 注册 AuthModule**
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -1129,7 +1145,7 @@ import { AuthModule } from './modules/auth/auth.module';
 export class AppModule {}
 ```
 
-- [ ] **Step 5: 启动并用 curl 验证登录**
+- [ ] **Step 6: 启动并用 curl 验证登录**
 
 ```bash
 curl -X POST http://localhost:3000/auth/login \
@@ -1139,7 +1155,7 @@ curl -X POST http://localhost:3000/auth/login \
 
 Expected: 返回 `{ accessToken, refreshToken, user, permissions }`
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add apps/server/src/modules/auth apps/server/src/app.module.ts
@@ -1394,6 +1410,7 @@ git commit -m "feat: add tenant context middleware"
 
 - Create: `apps/server/src/modules/audit/audit.module.ts`
 - Create: `apps/server/src/modules/audit/audit.service.ts`
+- Create: `apps/server/src/modules/audit/audit.dto.ts`
 - Create: `apps/server/src/modules/audit/audit.controller.ts`
 
 - [ ] **Step 1: 创建 audit.service.ts**
@@ -1448,13 +1465,22 @@ export class AuditService {
 }
 ```
 
-- [ ] **Step 2: 创建 audit.controller.ts**
+- [ ] **Step 2: 创建 audit.dto.ts**
 
 ```typescript
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { createZodDto } from 'nestjs-zod';
+import { paginationSchema } from '@rent-app/schema';
+
+export class AuditListQueryDto extends createZodDto(paginationSchema) {}
+```
+
+- [ ] **Step 3: 创建 audit.controller.ts**
+
+```typescript
+import { Controller, Get, Query, Req } from '@nestjs/common';
 import { AuditService } from './audit.service';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
-import { paginationSchema } from '@rent-app/schema';
+import { AuditListQueryDto } from './audit.dto';
 
 @Controller('audit')
 export class AuditController {
@@ -1462,14 +1488,13 @@ export class AuditController {
 
   @Get()
   @RequirePermission('roles')
-  async findAll(@Req() req: any, @Query() query: unknown) {
-    const { page, pageSize } = paginationSchema.parse(query);
-    return this.auditService.findAll(BigInt(req.user.tenantId), page, pageSize);
+  async findAll(@Req() req: any, @Query() query: AuditListQueryDto) {
+    return this.auditService.findAll(BigInt(req.user.tenantId), query.page, query.pageSize);
   }
 }
 ```
 
-- [ ] **Step 3: 创建 audit.module.ts**
+- [ ] **Step 4: 创建 audit.module.ts**
 
 ```typescript
 import { Module, Global } from '@nestjs/common';
@@ -1485,9 +1510,9 @@ import { AuditController } from './audit.controller';
 export class AuditModule {}
 ```
 
-- [ ] **Step 4: 在 app.module.ts 注册 AuditModule**
+- [ ] **Step 5: 在 app.module.ts 注册 AuditModule**
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add apps/server/src/modules/audit apps/server/src/app.module.ts
@@ -1505,6 +1530,7 @@ git commit -m "feat: add audit module"
 
 - Create: `apps/server/src/modules/users/users.module.ts`
 - Create: `apps/server/src/modules/users/users.service.ts`
+- Create: `apps/server/src/modules/users/users.dto.ts`
 - Create: `apps/server/src/modules/users/users.controller.ts`
 
 - [ ] **Step 1: 创建 users.service.ts**
@@ -1649,13 +1675,24 @@ export class UsersService {
 }
 ```
 
-- [ ] **Step 2: 创建 users.controller.ts**
+- [ ] **Step 2: 创建 users.dto.ts**
+
+```typescript
+import { createZodDto } from 'nestjs-zod';
+import { createUserSchema, updateUserSchema, paginationSchema } from '@rent-app/schema';
+
+export class CreateUserDto extends createZodDto(createUserSchema) {}
+export class UpdateUserDto extends createZodDto(updateUserSchema) {}
+export class UserListQueryDto extends createZodDto(paginationSchema) {}
+```
+
+- [ ] **Step 3: 创建 users.controller.ts**
 
 ```typescript
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, Req } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
-import { createUserSchema, updateUserSchema, paginationSchema } from '@rent-app/schema';
+import { CreateUserDto, UpdateUserDto, UserListQueryDto } from './users.dto';
 
 @Controller('users')
 @RequirePermission('users')
@@ -1663,24 +1700,21 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Post()
-  async create(@Req() req: any, @Body() body: unknown) {
-    const input = createUserSchema.parse(body);
-    return this.usersService.create(BigInt(req.user.tenantId), input, BigInt(req.user.sub));
+  async create(@Req() req: any, @Body() body: CreateUserDto) {
+    return this.usersService.create(BigInt(req.user.tenantId), body, BigInt(req.user.sub));
   }
 
   @Get()
-  async findAll(@Req() req: any, @Query() query: unknown) {
-    const { page, pageSize } = paginationSchema.parse(query);
-    return this.usersService.findAll(BigInt(req.user.tenantId), page, pageSize);
+  async findAll(@Req() req: any, @Query() query: UserListQueryDto) {
+    return this.usersService.findAll(BigInt(req.user.tenantId), query.page, query.pageSize);
   }
 
   @Patch(':id')
-  async update(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
-    const input = updateUserSchema.parse(body);
+  async update(@Req() req: any, @Param('id') id: string, @Body() body: UpdateUserDto) {
     return this.usersService.update(
       BigInt(req.user.tenantId),
       BigInt(id),
-      input,
+      body,
       BigInt(req.user.sub),
     );
   }
@@ -1692,7 +1726,7 @@ export class UsersController {
 }
 ```
 
-- [ ] **Step 3: 创建 users.module.ts**
+- [ ] **Step 4: 创建 users.module.ts**
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -1706,9 +1740,9 @@ import { UsersService } from './users.service';
 export class UsersModule {}
 ```
 
-- [ ] **Step 4: 在 app.module.ts 注册 UsersModule**
+- [ ] **Step 5: 在 app.module.ts 注册 UsersModule**
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add apps/server/src/modules/users apps/server/src/app.module.ts
@@ -1726,6 +1760,7 @@ git commit -m "feat: add users module with CRUD"
 
 - Create: `apps/server/src/modules/permissions/permissions.module.ts`
 - Create: `apps/server/src/modules/permissions/permissions.service.ts`
+- Create: `apps/server/src/modules/permissions/permissions.dto.ts`
 - Create: `apps/server/src/modules/permissions/permissions.controller.ts`
 
 - [ ] **Step 1: 创建 permissions.service.ts**
@@ -1800,13 +1835,22 @@ export class PermissionsService {
 }
 ```
 
-- [ ] **Step 2: 创建 permissions.controller.ts**
+- [ ] **Step 2: 创建 permissions.dto.ts**
+
+```typescript
+import { createZodDto } from 'nestjs-zod';
+import { updateRolePermissionsSchema } from '@rent-app/schema';
+
+export class UpdateRolePermissionsDto extends createZodDto(updateRolePermissionsSchema) {}
+```
+
+- [ ] **Step 3: 创建 permissions.controller.ts**
 
 ```typescript
 import { Controller, Get, Put, Body, Param, Req } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
-import { updateRolePermissionsSchema } from '@rent-app/schema';
+import { UpdateRolePermissionsDto } from './permissions.dto';
 
 @Controller('permissions')
 @RequirePermission('roles')
@@ -1824,18 +1868,17 @@ export class PermissionsController {
   }
 
   @Put('role')
-  async updateRolePermissions(@Req() req: any, @Body() body: unknown) {
-    const input = updateRolePermissionsSchema.parse(body);
+  async updateRolePermissions(@Req() req: any, @Body() body: UpdateRolePermissionsDto) {
     return this.permissionsService.updateRolePermissions(
       BigInt(req.user.tenantId),
-      input,
+      body,
       BigInt(req.user.sub),
     );
   }
 }
 ```
 
-- [ ] **Step 3: 创建 permissions.module.ts**
+- [ ] **Step 4: 创建 permissions.module.ts**
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -1849,9 +1892,9 @@ import { PermissionsService } from './permissions.service';
 export class PermissionsModule {}
 ```
 
-- [ ] **Step 4: 在 app.module.ts 注册 PermissionsModule**
+- [ ] **Step 5: 在 app.module.ts 注册 PermissionsModule**
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add apps/server/src/modules/permissions apps/server/src/app.module.ts
@@ -1869,6 +1912,7 @@ git commit -m "feat: add permissions module"
 
 - Create: `apps/server/src/modules/tenants-mgmt/tenants-mgmt.module.ts`
 - Create: `apps/server/src/modules/tenants-mgmt/tenants-mgmt.service.ts`
+- Create: `apps/server/src/modules/tenants-mgmt/tenants-mgmt.dto.ts`
 - Create: `apps/server/src/modules/tenants-mgmt/tenants-mgmt.controller.ts`
 
 - [ ] **Step 1: 创建 tenants-mgmt.service.ts**
@@ -1970,13 +2014,24 @@ export class TenantsMgmtService {
 }
 ```
 
-- [ ] **Step 2: 创建 tenants-mgmt.controller.ts**
+- [ ] **Step 2: 创建 tenants-mgmt.dto.ts**
+
+```typescript
+import { createZodDto } from 'nestjs-zod';
+import { createTenantSchema, updateTenantSchema, paginationSchema } from '@rent-app/schema';
+
+export class CreateTenantDto extends createZodDto(createTenantSchema) {}
+export class UpdateTenantDto extends createZodDto(updateTenantSchema) {}
+export class TenantListQueryDto extends createZodDto(paginationSchema) {}
+```
+
+- [ ] **Step 3: 创建 tenants-mgmt.controller.ts**
 
 ```typescript
 import { Controller, Get, Post, Patch, Body, Param, Query, Req } from '@nestjs/common';
 import { TenantsMgmtService } from './tenants-mgmt.service';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
-import { createTenantSchema, updateTenantSchema, paginationSchema } from '@rent-app/schema';
+import { CreateTenantDto, UpdateTenantDto, TenantListQueryDto } from './tenants-mgmt.dto';
 
 @Controller('tenants')
 @RequirePermission('tenants_mgmt')
@@ -1984,26 +2039,23 @@ export class TenantsMgmtController {
   constructor(private tenantsMgmtService: TenantsMgmtService) {}
 
   @Post()
-  async create(@Req() req: any, @Body() body: unknown) {
-    const input = createTenantSchema.parse(body);
-    return this.tenantsMgmtService.create(input, BigInt(req.user.sub));
+  async create(@Req() req: any, @Body() body: CreateTenantDto) {
+    return this.tenantsMgmtService.create(body, BigInt(req.user.sub));
   }
 
   @Get()
-  async findAll(@Query() query: unknown) {
-    const { page, pageSize } = paginationSchema.parse(query);
-    return this.tenantsMgmtService.findAll(page, pageSize);
+  async findAll(@Query() query: TenantListQueryDto) {
+    return this.tenantsMgmtService.findAll(query.page, query.pageSize);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() body: unknown) {
-    const input = updateTenantSchema.parse(body);
-    return this.tenantsMgmtService.update(BigInt(id), input);
+  async update(@Param('id') id: string, @Body() body: UpdateTenantDto) {
+    return this.tenantsMgmtService.update(BigInt(id), body);
   }
 }
 ```
 
-- [ ] **Step 3: 创建 tenants-mgmt.module.ts**
+- [ ] **Step 4: 创建 tenants-mgmt.module.ts**
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -2017,9 +2069,9 @@ import { TenantsMgmtService } from './tenants-mgmt.service';
 export class TenantsMgmtModule {}
 ```
 
-- [ ] **Step 4: 在 app.module.ts 注册 TenantsMgmtModule**
+- [ ] **Step 5: 在 app.module.ts 注册 TenantsMgmtModule**
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add apps/server/src/modules/tenants-mgmt apps/server/src/app.module.ts
