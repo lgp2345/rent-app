@@ -59,6 +59,23 @@ export const refreshTokens = pgTable(
   (table) => [index('refresh_tokens_user_id_idx').on(table.userId)],
 );
 
+export const userSessions = pgTable(
+  'user_sessions',
+  {
+    id: bigint('id', { mode: 'bigint' }).primaryKey(),
+    userId: bigint('user_id', { mode: 'bigint' })
+      .notNull()
+      .references(() => users.id),
+    tenantId: bigint('tenant_id', { mode: 'bigint' })
+      .notNull()
+      .references(() => tenants.id),
+    revokedAt: timestamp('revoked_at'),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('user_sessions_user_id_idx').on(table.userId)],
+);
+
 export const permissions = pgTable('permissions', {
   id: bigint('id', { mode: 'bigint' }).primaryKey(),
   name: varchar('name', { length: 50 }).notNull().unique(),
